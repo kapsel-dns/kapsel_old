@@ -1,0 +1,197 @@
+/*!
+\author J. Molina
+\date 2012/05/16
+\page page_design_grid Computational Grid
+
+\section sec_design_grid_sekibun Sekibun Integration Cell
+When computing integrals over the particle domain \f$\left(\phi(\vec{r}) > 0\right)\f$, it would be very inefficient to scan the whole grid to determine which points lie inside this region. Since the size/shape of our particles is fixed, all the grid points which can contribute to such integrals can be easily precomputed, and we need only to test this reduced subset of points, referred to as the Sekibun cell.
+
+Consider a particle of radius \f$a\f$, with a smooth interface of thickness \f$\zeta\f$, which is located at position \f$\vec{x}_p\f$. In general, the center of the particle will not coincide with a grid point. For computational convenience, it is usefull to consider an auxiliary "grid" particle whose center does lie on one of the grid points, say at \f$\vec{x}_i\f$. Since the particle center has been displaced by \f$\vec{x}_r = \vec{x}_i - \vec{x}_p\f$, the radius \f$a_s\f$ of the auxiliaray particle (blue region) should be larger than the radius of the original smooth particle \f$a + \zeta/2\f$ (yellow/orange region), so none of the points are lost. The Sekibun cell is the list of grid points contained in this auxiliary "grid" particle. A schematic representation, for the case of a 2D system, is given in Fig. 1.
+Integrations over the particle domain will include all the points \f$\vec{x}_s''\f$, in the Sekibun cell, which lie in the particle domain, i.e.
+\f[
+ \phi\left(|\vec{x}_s^{\,\prime}|\right) = \phi\left(| \vec{x}_s^{\,\prime\prime} + \vec{x}_r |\right) > 0
+\f]
+Since the shape/size of our particle is fixed, the Sekibun cell is also constant, and the points \f$\vec{x}_s^{\,\prime\prime}\f$ which we need to consider are always the same. Note also that the global coordinates for the integration points \f$\vec{x}_s\f$ are easily obtained from the particle position \f$\vec{x}_p\f$ and the displacement vector \f$\vec{x}_r\f$.
+\htmlonly
+<p><div class="image">
+   <img src="../images/sekibun_cell.jpg" title="sekibun_cell.jpg" width="30%" height="auto"/>
+   <div class="caption"> Fig 1. Sekibun Integration Cell</div>
+</div></p>
+\endhtmlonly
+
+In 3D, the upper bound to the magnitude of the displacement vector \f$x_r\f$ is given by the length of the body diagonal of the grid box. For a cubic grid, with spacing \f$\Delta\f$, we have \f$x_r \le \sqrt{3} \Delta\f$. In this case, the radius of the Sekibun cell should be such that
+\f[
+  a_s \ge a + \zeta/2 + \sqrt{3} \Delta
+\f]
+
+\subsection ssec_sekibun_example Example
+As an example of how to use the Sekibun cell to treat the particle domain point, consider the following code fragment, adapted from \link Calc_f_hydro_correct_precision Calc_f_hydro_correct_precision\endlink, which computes the hydrodynamic force exterted on the particle (over an interval h) by the fluid, defined as (Eq. 22, EPJE 2008 \ref sec_intro_biblio "[1]" )
+\f[
+  \left[\int_{t_n}^{t_n+h} \df{s} \vec{F}_i^H(s)\right] =
+  \int\vdf{x} \rho \phi_i^{n+1}\left(\vec{v}^{**} - \vec{v}^{n}_p\right)
+\f]
+\code
+void Calc_f_hydro_correct_precision(Particle *p, //particle list
+     				    double **u, //velocity field
+				    const CTime &jikan //simulation time
+				    )
+{
+  double xp[DIM], vp[DIM], omega_p[DIM];
+  double xi[DIM]; // center of Sekibun cell
+  double xr[DIM]; // displacement vector x_int - xp
+  int ixs[DIM]; //Global grid coordinates of integration point
+  double xs[DIM]; //Global coordinates of integration point
+  double xs_prime[DIM]; // distance vector from particle center to integration point
+
+  double v_rot[DIM]; // velocity due to rotation
+  double force[DIM]; // particle force
+
+  int dmy; // dummy variable
+  double dmy_r;
+  double dmy_phi;
+  
+				    
+  for(int n = 0; n < Particle_Number; n++){
+
+   // position (xp), velocity (vp), angular velocity (omega_p) of particle n
+    for(int d = 0; d < DIM; d++){
+      xp[d] = p[n].x[d];
+      vp[d] = p[n].v[d];
+      omega_p[d] = p[n]].omega[d];
+
+      force[d] = 0.0;
+    }
+
+    // get grid point for center of Sekibun cell for a particle at xp 
+    // DX = grid spacing
+    Particle_cell(xp, DX, xi, xr);
+    
+    // loop over Sekibun cell containing mesh points in local coordinates
+    for(int mesh = 0; mesh < NP_domain; mesh++){
+
+      // get global coordinates for mesh Sekibun point
+      // Ns = (NX, NY, NZ) gives the total grid points in each direction
+      Relative_coord(Sekibun_cell[mesh], xi, xr, dmy, Ns, DX, ixs, xs_prime);
+      for(int d = 0; d < DIM; d++)
+        xs[d] = ixs[d] * DX;
+
+      // get smooth profile function at mesh point (for particle of radius=RADIUS at xp)
+      dmy_r = Distance(xp, xs); //Equal to norm of xs_prime
+      dmy_phi = Phi(dmy_r, RADIUS); 
+
+      // get velocity at grid point due to particle rotation
+      Angular2v(omega_p, xs_prime, v_rot);
+      
+      int im = ixs[0] * NY * NZ_ + ixs[1] * NZ_ + ixs[2]; // position in field arrays of integration point
+      for(int d=0; d < DIM; d++){ 
+        force[d] += ((vp[d] + v_rot[d]) - u[d][im]) * dmy_phi; // hydrodynamic force
+      }
+    }
+
+    // save total results to particle data
+    for(int d = 0; d < DIM; d++)
+      p[n].f_hydro[d] = (-DX3 * RHO)/jikan.dt_fluid * force[d] * p[n].eff_mass_ratio;
+  }
+}
+\endcode
+
+\note As convention, we pin the Sekibun cell \f$\vec{x}_i\f$ to the back, lower, left corner of the grid cube containing the particle center \f$\vec{x}_p\f$. This is implemented in \link Particle_cell Particle_cell\endlink.
+\note The Sekibun cell is created in \link Particle_domain Particle_domain\endlink. As of version 2.10 it is not possible to treat size polidispersity (all particles have the same radius, and so use the same Sekibun cell).
+\note The transformation from local (Sekibun) coordinates \f$\vec{x}_s^{\,\prime\prime}\f$ to Global coordinates \f$\vec{x}_s\f$ is implemented in \link Relative_coord Relative_coord\endlink.
+
+\section sec_design_grid_ooura Ooura's FFT - Real/Reciprocal space representations
+Under periodic boundary conditions, the solution to the Navier-Stokes equation (with the exception of the advection term) is much easier in reciprocal space than it is in real space. We adopt the following convention for the sign of the direct and inverse tranforms
+\f{eqnarray*}{
+\ft{a}(\vec{k}) &=& \int\vdf{r} e^{+ 2\pi i \vec{k}\cdot\vec{r} } a(\vec{r}) \\
+a(\vec{r}) &=& \int\vdf{k} e^{- 2\pi i \vec{k}\cdot\vec{r}} \ft{a}(\vec{k})		 
+\f}
+
+To perform the required (discrete) Fourier Transforms, we use 
+<a href="http://www.kurims.kyoto-u.ac.jp/~ooura/fft.html">Ooura's FFT package</a>. A full description of the package can be found online and in the source-code documentation. In what follows we give a brief description of the 3D Real Discrete Fast Fourier Transform (RDFFT) \link rdft3d rdft3d\endlink used in the Kapsel code. 
+\subsection ssec_ooura_direct Direct/Inverse Transformation
+Given a 3D sequence \f$a(i,j,k)\f$ in the real domain, where
+\f[
+0 \le i < N_x ,\,
+0 \le j < N_y ,\,
+0 \le k < N_z ,
+\f]
+and the \f$N_\alpha\f$ (grid points) are integer powers of 2, 
+\link rdft3d rdft3d\endlink (after an appropriate sorting) performs the transformation \f$a(i,j,k) \longrightarrow \ft{a}(i',j',k')\f$, with
+\f{eqnarray*}{
+\ft{a}(i', j', 2 k') &=&  \ft{R}(i',j',k')\\
+\ft{a}(i', j', 2k' + 1) &=& \ft{I}(i',j',k')\\
+		     0 \le i' < N_x,&&0 \le j' < N_y,\qquad 0 \le k' \le N_z/2
+\f}
+where \f$\ft{R}\f$ and \f$\ft{I}\f$ represent the real and imaginary parts of the transformation, defined as
+\f{eqnarray*}{
+\ft{R}(i', j', k') &= \sum_{i=0}^{N_x-1}\sum_{j=0}^{N_y-1}\sum_{k=0}^{N_z-1} a(i,j,k)
+	  \cos\left[2\pi\left(\frac{i i'}{N_x} + \frac{j j'}{N_y} + \frac{k k'}{N_z}\right)\right] \\
+\ft{I}(i', j', k') &= \sum_{i=0}^{N_x-1}\sum_{j=0}^{N_y-1}\sum_{k=0}^{N_z-1} a(i,j,k)
+	   \sin\left[2\pi\left(\frac{i i'}{N_x} + \frac{j j'}{N_y} + \frac{k k'}{N_z}\right)\right]
+\f}
+
+\note The output sequence \f$\ft{a}\f$ is larger than the input sequence: the third index is allowed to vary between 0 and \f$N_z + 1\f$ instead of 0 and \f$N_z - 1\f$. This requires some care, since the same array variable is used for the input/output: All the field arrays are defined in memory over the domain \f$(0\ldots N_x-1, 0\ldots N_y-1, 0\ldots N_z+1)\f$ (more specifically, as a 1D contiguous array of memory of size \f$N_x N_y (N_z + 2)\f$), but when working in real space only the elements corresponding to \f$k' < N_z - 1\f$ should be used. For convenience, we have defined an additional variable \c NZ_ which is equal to \c NZ + 2.
+
+The inverse Fourier transform, also provided by \link rdft3d rdft3d\endlink (save for a scaling factor and a previous sort), performs the transformation \f$\ft{a}(i',j',k') \longrightarrow a(i,j,k)\f$. 
+\subsection ssec_ooura_example Usage
+The following code fragment gives an example of how Ooura's fft routine should be used
+\code
+// Assuming Init_fft_ooura() has been called to initialize the (global) workspace arrays ip, t, w needed by rdft3d
+// a is a linear array of size NX*NY*NZ_ which represents a 3D sequence over the computational grid
+void foo(double *a){
+  int im; //position in memory
+
+  // Real space calculation
+  // Notice 0 <= k < NZ
+  for(int i = 0; i < NX; i++){
+    for(int j = 0; j < NY; j++){
+      for(int k = 0; k < NZ; k++){
+        im = (i * NY * NZ_) + (j * NZ_) + k; // Always use NZ_ to compute position in memory (real and reciprocal space)
+	a[im] = foo_real();
+      }
+    }
+  }
+
+  // Direct transformation
+  rdft3d(NX, NY, NZ, 1, a, t, ip, w);
+  rdft3dsort(NX, NY, NZ, 1, a);
+
+  // Reciprocal space calculation (real != imag)
+  // Notice 0 <= k < HNZ_ = NZ_/2 = (NZ+2)/2
+  for(int i = 0; i < NX; i++){
+    for(int j = 0; j < NY; j++){
+      for(int k = 0; k < HNZ_; k++){//read (real,imaginary) components simultaneously
+        k2=2*k;
+        im = (i * NY * NZ_) + (j * NZ_) + k2;
+	a[im] = foo_reciprocal_realPart();
+	a[im+1] = foo_reciprocal_imagPart();
+      }
+    }
+  }
+
+  // Reciprocal space calculation (real == imag)
+  for(int i = 0; i < NX; i++){
+    for(int j = 0; j < NX; j++){
+      for(int k = 0; k < NZ_; k++){
+        im = (i * NY * NZ_) + (j * NZ_) + k2;
+	a[im] = foo_reciprocal_real_imag_Part();
+      }
+    }
+  }
+
+  // Inverse transformation
+  rdft3dsort(NX, NY, NZ, -1, a);
+  rdft3d(NX, NY, NZ, -1, a, t, ip, w);
+  for(int i = 0; i < NX; i++){ // required scaling factor
+    for(int j = 0; j < NY; j++){
+      for(int k = 0; k < NZ; k++){
+        im = (i * NY * NZ_) + (j * NZ_) + k;
+	a[im] *= 2.0 / (NX * NY * NZ);
+      }
+    }
+  }
+    
+}
+\endcode
+You should not  call \c rdft3d directly, as we have provided a set of wrapper routines to hande the necessary tranformations (you do not need to worry about sorting/scaling the arrays or handling the workspace). These functions are defined in \link fft_wrapper.h fft_wrapper\endlink. However, you should keep in mind the size assymetry between the real/reciprocal arrays and the position of the real/imaginary components of the transformed data.
+*/

@@ -1,0 +1,19 @@
+/*!
+
+\mainpage
+Welcome to the KAPSEL documentation
+\section sec_main_toc Table of Contents
+ - \subpage page_intro
+ - \subpage page_design
+ - \subpage release_notes
+ - \subpage page_license
+ - \subpage page_contact
+
+\page page_design Design & Implementation
+Table of contents
+- \subpage page_design_grid
+- \subpage page_design_fsolver
+- \subpage page_design_ssolver
+- \subpage page_rigid_body
+- \subpage page_design_swimmer
+*/

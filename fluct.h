@@ -1,6 +1,11 @@
-//
-// $Id: fluct.h,v 1.1 2006/06/27 18:41:28 nakayama Exp $
-//
+/*!
+  \file fluct.h
+  \author Y. Nakayama
+  \date 2006/06/27
+  \version 1.1
+  \brief Routines to compute random thermal fluctuation forces (header file)
+  \todo documentation
+ */
 #ifndef FLUCT_H
 #define FLUCT_H
 

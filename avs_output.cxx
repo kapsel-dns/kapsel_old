@@ -1,6 +1,10 @@
-//
-// $Id: avs_output.cxx,v 1.1 2006/06/27 18:41:28 nakayama Exp $
-//
+/*!
+  \file avs_output.cxx
+  \author Y. Nakayama
+  \date 2006/06/27
+  \version 1.1
+  \brief Output routines for field data in AVS/Express format
+ */
 
 #include "avs_output.h"
 
@@ -155,14 +159,17 @@ void Set_avs_parameters(AVS_parameters &Avs_parameters){
   }
 
 }
+
 inline void Binary_write(FILE *fout
 			 ,AVS_parameters &Avs_parameters
 			 ,double *a
 			 ){
+  int im;
   for(int k=Avs_parameters.kstart; k<= Avs_parameters.kend; k++){
     for(int j=Avs_parameters.jstart; j<= Avs_parameters.jend; j++){
       for(int i=Avs_parameters.istart; i<=Avs_parameters.iend; i++){
-	float dmy= (float)a[(i*NY*NZ_)+(j*NZ_)+k];
+	im = (i * NY * NZ_) + (j * NZ_) + k;
+	float dmy= (float)a[im];
 	fwrite(&dmy,sizeof(float),1,fout);
       }
     }
@@ -268,12 +275,18 @@ void Output_avs(AVS_parameters &Avs_parameters
 
   A_k2a(Pressure);
   {
-      Reset_phi(phi);
-      if (SW_EQ == Shear_Navier_Stokes_Lees_Edwards) {
+    Reset_phi(phi);
+    if (SW_EQ == Shear_Navier_Stokes_Lees_Edwards) {
 	  Make_phi_particle_OBL(phi, p);
-      } else {
+	  if(SW_JANUS){
+	    Make_phi_janus_particle_OBL(phi, work_v1, p); // +1/-1 janus polarity
+	  }
+    }else {
 	  Make_phi_particle(phi, p);
-      }
+	  if(SW_JANUS){
+	    Make_phi_janus_particle(phi, work_v1, p); // +1/-1 janus polarity
+	  }
+    }
   }
   
   Add_field_description(Avs_parameters,time, Veclen);
@@ -328,25 +341,52 @@ void Output_avs(AVS_parameters &Avs_parameters
 }
 
 void Output_udf(UDFManager *ufout
-		,AVS_parameters &Avs_parameters
-		,double **zeta
-		,double *uk_dc
-		,const Particle *p
-		,const CTime &time
-		){
+                , AVS_parameters &Avs_parameters
+                , double **zeta
+                , double *uk_dc
+                , const Particle *p
+                , const CTime &time
+		)
+{
   ufout->newRecord();
-  ufout->put("E",1.0);
-  ufout->put("t",time.ts);
-  for(int j=0;j<Particle_Number;j++){
+  ufout->put("E", 1.0);
+  ufout->put("t", time.ts);
+  for(int j = 0; j < Particle_Number; j++) {
     char str[256];
-    sprintf(str,"Particles[%d]",j);
+    sprintf(str, "Particles[%d]", j);
     Location target(str);
-    ufout->put(target.sub("R.x"),p[j].x[0]);
-    ufout->put(target.sub("R.y"),p[j].x[1]);
-    ufout->put(target.sub("R.z"),p[j].x[2]);
-    ufout->put(target.sub("v.x"),p[j].v[0]);
-    ufout->put(target.sub("v.y"),p[j].v[1]);
-    ufout->put(target.sub("v.z"),p[j].v[2]);
+    ufout->put(target.sub("R.x"), p[j].x[0]);
+    ufout->put(target.sub("R.y"), p[j].x[1]);
+    ufout->put(target.sub("R.z"), p[j].x[2]);
+    ufout->put(target.sub("R_raw.x"), p[j].x_nopbc[0]);
+    ufout->put(target.sub("R_raw.y"), p[j].x_nopbc[1]);
+    ufout->put(target.sub("R_raw.z"), p[j].x_nopbc[2]);
+    ufout->put(target.sub("v.x"), p[j].v[0]);
+    ufout->put(target.sub("v.y"), p[j].v[1]);
+    ufout->put(target.sub("v.z"), p[j].v[2]);
+
+    qtn_isnormal(p[j].q);
+    ufout->put(target.sub("q.q0"), qtn_q0(p[j].q));
+    ufout->put(target.sub("q.q1"), qtn_q1(p[j].q));
+    ufout->put(target.sub("q.q2"), qtn_q2(p[j].q));
+    ufout->put(target.sub("q.q3"), qtn_q3(p[j].q));
+    ufout->put(target.sub("omega.x"), p[j].omega[0]);
+    ufout->put(target.sub("omega.y"), p[j].omega[1]);
+    ufout->put(target.sub("omega.z"), p[j].omega[2]);
+
+    ufout->put(target.sub("f_hydro.x"), p[j].f_hydro_previous[0]);
+    ufout->put(target.sub("f_hydro.y"), p[j].f_hydro_previous[1]);
+    ufout->put(target.sub("f_hydro.z"), p[j].f_hydro_previous[2]);
+    ufout->put(target.sub("torque_hydro.x"), p[j].torque_hydro_previous[0]);
+    ufout->put(target.sub("torque_hydro.y"), p[j].torque_hydro_previous[1]);
+    ufout->put(target.sub("torque_hydro.z"), p[j].torque_hydro_previous[2]);
+
+    ufout->put(target.sub("f_slip.x"), p[j].f_slip_previous[0]);
+    ufout->put(target.sub("f_slip.y"), p[j].f_slip_previous[1]);
+    ufout->put(target.sub("f_slip.z"), p[j].f_slip_previous[2]);
+    ufout->put(target.sub("torque_slip.x"), p[j].torque_slip_previous[0]);
+    ufout->put(target.sub("torque_slip.y"), p[j].torque_slip_previous[1]);
+    ufout->put(target.sub("torque_slip.z"), p[j].torque_slip_previous[2]);
   }
 }
 

@@ -1,0 +1,50 @@
+/*!
+\page page_faq FAQ
+<strong>How can I get Kapsel?</strong><br>
+Visit <a href="http://www-tph.cheme.kyoto-u.ac.jp/kapsel/phpBB3" rel="nofollow">KAPSEL-BBS</a>, and register your name and e-mail address there. Then, you will get an e-mail to activate your account. Once your account is activated, you can login to KAPSEL-BBS and download KAPSEL from there.
+
+<strong>Where can I ask questions about KAPSEL?</strong><br>
+Visit KAPSEL-BBS.
+
+<strong>Can I give my KAPSEL package to someone else?</strong><br>
+Yes. But please tell them that they should register for a member of KAPSEL-BBS.
+
+<strong>What kind of problems can I solve using KAPSEL?</strong><br>
+Various problems of particle dispersions in general, including electrophoresis, sedimentation, coagulation, and rheology of particle dispersions.
+
+<strong>What operating systems are supported by KAPSEL?</strong><br>
+KAPSEL runs on Windows (XP, Vista) and major Linux distributions (CentOS, SuSe, Debian, etc...). It can run on Mac OS-X also, but it is not officially supported. 
+
+<strong>Who can use KAPSEL? </strong><br>
+Anyone can use KAPSEL for their academic and industrial researches.
+
+<strong>Is KAPSEL free? </strong><br>
+Yes, but you should register your name and e-mail address at KAPSEL-BBS and keep the
+\ref page_license "Kapsel licence agreement"
+
+<strong>How can I get any information about version-up (or bugs)?</strong><br>
+Please visit <a href="http://www-tph.cheme.kyoto-u.ac.jp/kapsel/index.php?FrontPage">KAPSEL HP</a> and <a href="http://www-tph.cheme.kyoto-u.ac.jp/kapsel/phpBB3" rel="nofollow">KAPSEL-BBS</a>.
+
+<strong>Can I use the results obtained by KAPSEL for scientific publications? </strong><br>
+Yes. Please acknowledge that you used the KAPSEL software (http://www-tph.cheme.kyoto-u.ac.jp/kapsel/) in the publication.
+
+<strong>Can I modify KAPSEL? </strong><br>
+Yes, but if you want to distribute the modified version, you must report it to the KAPSEL development team beforehand.
+
+<strong>How can I contribute to KAPSEL? </strong><br>
+There are a number of ways that you can contribute to help make KAPSEL a better program. Perhaps the most important way to contribute is to write high-quality code for solving new problems, and to make your code freely available for others to use. If you find KAPSEL useful, consider providing additional funding to continue its development. Even a modest amount of additional funding could make a significant difference in the amount of time that is available for development and support. If you cannot provide funding or contribute code, you can still help make KAPSEL better and more reliable by reporting any bugs you find and by offering suggestions for ways to improve KAPSEL. 
+
+<strong>Can I commercialize KAPSEL? </strong><br>
+A RIGHT TO COMMERCIALIZE KAPSEL IS KEPT BY THE \ref page_contact "KAPSEL DEVELOPMENT TEAM". PLEASE CONTACT THE TEAM AND GET CERTIFICATION. FOR MORE DETAIL, PLEASE CONSULT KAPSEL-BBS.
+
+<strong>What is GOURMET? </strong><br>
+GOURMET is a common platform of for individual simulators. GOURMET provides a common graphical user interface for all simulation programs. GOURMET is an editor of the input data, a viewer of the output data, a tool to make graphs and animations, and most importantly a place for various simulation programs to meet and exchange the information they have. These services can be customized and enhanced by users. New simulation programs can be easily connected to GOURMET by writing the input and output files in a certain text file format called UDF (User Definable Format).
+
+<strong>What is UDF? </strong><br>
+UDF is a general file format used by simulation engines in OCTA. You can view, edit and analyze UDF file by using GOURMET, the user interface software included in OCTA. UDF is a plain text file, and consists of definition part and data part. In the definition part, you can define the data structure of your engine in a simple and natural way. The data in UDF can be easily accessed and modified by using UDF interface libraries for C/C++, Fortran and Python. KAPSEL uses UDF, and the detailed information on UDF for KAPSEL is here.
+
+<strong>How can I read and write UDF files? </strong><br>
+The UDF file is a text file, but can be treated as a random access storage without paying attention to its file structure. This means that any data in UDF can be read and written in any order from user programs (C/C++, Fortran, Python). To facilitate I/O from/to the UDF file, two service libraries are provided.<br>
+- libplatform: This is the library needed to read and write UDF files from C/C++ and Fortran programs. One can find examples in KAPSEL source codes written in C++.
+- Python UDF Manager: This is the library needed to read and write UDF files from Python scripts. 
+*/

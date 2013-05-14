@@ -1,0 +1,24 @@
+/*!
+\page release_notes Release Notes
+\section release_v3 Version 3.0
+- Bug fixes
+  - added undeclared private variables in omp directive for \link U_k2rotation_k \endlink
+  - fixed incorrect calculation of AC external field for \link Add_external_electric_field_x\endlink and \link Make_Coulomb_force_x_on_fluid\endlink
+  - fixed definition of Sekibun_cell in \link Particle_domain \endlink to be independent of the choice of profile function
+  - fixed incorrect update of K2 magnitude for Lees-Edwards simulations (Oblique coordinates) in \link Time_evolution_hydro_OBL\endlink
+  - fixed calculation of \link DPhi_compact \endlink
+- Removals
+  - unused field variables: f_ns2, f_ns3 and f_ns4
+  - unused particle data: fv, fv_previous, f_restrain, f_collision, torque_r, torque_r_previous, torquev, torquev_previous, momentum_depend_restrain, momentum_depend_fluctuation and eff_mass_ratio
+  - unused input options: HYDRO_int (use full hydrodynamics), STOKES (include advection), and boundary_condition (full periodic)
+  - unused NS_source term in solute solvers 
+  - unused interface and exponential Sekibun_cells
+  - unused MD_solver_velocity_Euler_hydro routine
+- Additions        
+  - rigid-chain motion
+  - rigid-body motion to follow the orientation of particles in space
+  - constant body-force/torque for self-propelled motors
+  - non-stick boundary conditions to simulate Blake's squirmers
+  - non-moving particles (obstacles)
+  - non-pbc particle coordinates in output trajectory
+*/

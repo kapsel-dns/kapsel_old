@@ -1,12 +1,14 @@
-//
-// $Id: solute_rhs.cxx,v 1.1 2006/06/27 18:41:29 nakayama Exp $
-//
+/*!
+  \file solute_rhs.cxx
+  \brief Routines to compute the terms appearing in the right hand side of the solute advection diffusion equation
+  \author Y. Nakayama
+  \date 2006/06/27
+  \version 1.1
+ */
+
 #include "solute_rhs.h"
 
 double *Valency_e;
-
-int NP_domain_exponential;
-int **Sekibun_cell_exponential;
 
 double *Total_solute;
 
@@ -145,38 +147,33 @@ double Count_single_solute(double *conc_x
   return dmy * DX3;
 }
 
-int NS_source = 0;
 void Solute_solver_rhs_nonlinear_x_single(double **grad_potential
 					  ,double *concentration_x
 					  ,double **solute_flux
 					  ,double &valency_e
 					  ,double &onsager_coeff
-					  ,double *omega_rhs
 					  ){
   int im;
   double dmy_u[DIM];
   double dmy_grad_pot[DIM];
-  double dmy_omega_rhs;
   double dmy_conc;
   double dmy_conc_flux[DIM];
   double dmy_interaction;
-#pragma omp parallel for schedule(dynamic, 1) private(im,dmy_u,dmy_grad_pot,dmy_omega_rhs,dmy_conc,dmy_conc_flux,dmy_interaction)
+#pragma omp parallel for schedule(dynamic, 1) private(im,dmy_u,dmy_grad_pot,dmy_conc,dmy_conc_flux,dmy_interaction)
   for(int i=0; i<NX; i++){
     for(int j=0; j<NY; j++){
       for(int k=0; k<NZ; k++){
 	im=(i*NY*NZ_)+(j*NZ_)+k;
 	//double dmy_u[DIM];
 	//double dmy_grad_pot[DIM];
-	//double dmy_omega_rhs;
+
 	for(int d=0;d<DIM;d++){
 	  //dmy_grad_pot[d] = grad_potential[d][i][j][k];
 	  dmy_grad_pot[d] = grad_potential[d][im];
 	}
 	//double dmy_conc = concentration_x[im];
 	dmy_conc = concentration_x[im];
-	if(NS_source){
-	  dmy_omega_rhs = -IRHO * dmy_conc * valency_e;
-	}
+
 	//double dmy_conc_flux[DIM];
 	for(int d=0;d<DIM;d++){
 	  dmy_interaction = dmy_grad_pot[d]*valency_e;
@@ -187,9 +184,6 @@ void Solute_solver_rhs_nonlinear_x_single(double **grad_potential
 	}
 	for(int d=0;d<DIM;d++){
 	  solute_flux[d][im] += dmy_conc_flux[d];
-	}
-	if(NS_source){
-	  omega_rhs[im] += dmy_omega_rhs;
 	}
       }
     }

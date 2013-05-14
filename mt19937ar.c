@@ -1,7 +1,10 @@
-//
-// $Id: mt19937ar.c,v 1.1 2006/06/27 18:41:28 nakayama Exp $
-//
-/* 
+/*! 
+  \file mt19937ar.c
+  \author T. Nishimura
+  \author M. Matsumoto
+  \date 2002/01/26
+  \brief Randon number generator - You get what you deserve if you modify this file !
+  \details
    A C-program for MT19937, with initialization improved 2002/1/26.
    Coded by Takuji Nishimura and Makoto Matsumoto.
 
@@ -40,8 +43,10 @@
 
 
    Any feedback is very welcome.
+
    http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html
-   email: m-mat @ math.sci.hiroshima-u.ac.jp (remove space)
+
+   email: m-mat@math.sci.hiroshima-u.ac.jp
 */
 
 #include <stdio.h>

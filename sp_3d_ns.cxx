@@ -1,6 +1,10 @@
-//
-// $Id: sp_3d_ns.cxx,v 1.5 2006/11/14 03:39:36 nakayama Exp $
-//
+/*!
+  \file sp_3d_ns.cxx
+  \author Y. Nakayama
+  \date 2006/11/14
+  \version 1.5
+  \brief Main program file
+ */
 #include "sp_3d_ns.h"
 
 void (*Time_evolution)(double **zeta, double uk_dc[DIM], double **f, Particle *p, CTime &jikan);
@@ -56,7 +60,7 @@ void Time_evolution_noparticle(double **zeta, double uk_dc[DIM], double **f, Par
 
 void Time_evolution_hydro(double **zeta, double uk_dc[DIM], double **f, Particle *p, CTime &jikan){
     
-    // Update of Fluid Velocity Filed	
+    // Update of Fluid Velocity Field	
     Time_evolution_noparticle(zeta, uk_dc, f, p, jikan);
     
     if(Particle_Number >= 0){
@@ -82,8 +86,7 @@ void Time_evolution_hydro(double **zeta, double uk_dc[DIM], double **f, Particle
 	    }
 	}
 	
-	if(SW_EQ == Electrolyte 
-	    ){
+	if(SW_EQ == Electrolyte){
 	    double * rescale_factor = new double[N_spec];
 	    Rescale_solute(rescale_factor
 			   ,Total_solute
@@ -118,20 +121,62 @@ void Time_evolution_hydro(double **zeta, double uk_dc[DIM], double **f, Particle
 	    Solenoidal_u(u);
 	}
 	
-	
+		
 	{// Calculation of hydrodynamic force
-	    Reset_phi_u(phi, up);
-	    Calc_f_hydro_correct_precision(p, u, jikan);
+
+	  Reset_phi_u(phi, up);	  
+	  Calc_f_hydro_correct_precision(p, u, jikan); //hydrodynamic force
+
+	  if(!SW_JANUS_SLIP){
+	    if(!Fixed_particle){
+	      if(jikan.ts == 0){
+		MD_solver_velocity_Euler(p, jikan);
+	      }else{
+		MD_solver_velocity_AB2_hydro(p, jikan);
+	      }
+	    }
+	  }else{ // Self-Consistent slip force
+
+	    int slip_converge = 0;
+	    int slip_iter = 0;
+	    Make_particle_momentum_factor(u, p);         
+	    Update_slip_particle_velocity(p, slip_iter); // initial particle velocity for slip profile
+	    while(!slip_converge){
+	      Reset_u(up);
+
+	      Make_force_u_slip_particle(up, u, p, jikan);
+	      Solenoidal_u(up);
+	      Calc_f_slip_correct_precision(p, up, jikan); //slip force
+	      Add_f_particle(up, u); //up += u
+
+	      // Update particle velocity
+	      if(!Fixed_particle){
+		if(slip_iter == 0){
+		  MD_solver_velocity_slip_iter(p, jikan, start_iter);
+		}else{
+		  MD_solver_velocity_slip_iter(p, jikan, new_iter);
+		}
+	      }
+	      slip_iter++;
+
+	      if(Slip_particle_convergence(p) < MAX_SLIP_TOL || slip_iter == MAX_SLIP_ITER){
+		slip_converge = 1;
+		MD_solver_velocity_slip_iter(p, jikan, end_iter);
+	      }else{
+		Update_slip_particle_velocity(p, slip_iter); // use new particle velocity for new slip profile
+		MD_solver_velocity_slip_iter(p, jikan, reset_iter);
+	      }
+	    }//slip_convergence
+	    if(slip_iter == MAX_SLIP_ITER){
+	      fprintf(stderr, "#Warning: increase MAX_SLIP_ITER (%d)\n", jikan.ts);
+	    }
+	    double **u_old=u;
+	    u = up;
+	    up = u_old;
+	  } // slip 
+
 	}
 
-	if(!Fixed_particle){// Update of Particle Velocity
-	    if(jikan.ts == 0){
-		MD_solver_velocity_Euler(p, jikan);
-	    }else{
-		MD_solver_velocity_AB2_hydro(p, jikan);
-	    }
-	}
-	
 	if(kBT > 0. && SW_EQ != Electrolyte){
 	    Add_random_force_thermostat(p, jikan); 
 	}
@@ -266,7 +311,7 @@ void Time_evolution_hydro_OBL(double **zeta, double uk_dc[DIM], double **f, Part
 
 	for (int i=0; i<NX; i++) {
 	    for(int j=0; j<NY; j++){
-		for(int k=0; k<NZ; k++){
+		for(int k=0; k<NZ_; k++){
 		    im = (i*NY*NZ_)+(j*NZ_) + k;
 
 		    K2[im] =
@@ -378,7 +423,11 @@ int main(int argc, char *argv[]){
   cerr << "#  " << endl;
   cerr << "###########################" << endl;
 #endif  
+  clock_t global_start, block_start, end_time;
+  double global_time, block_time;
 
+  global_start = clock();
+  block_start = clock();
   if(argc> 0){
     file_get(argc, argv);
     Gourmet_file_io(In_udf,Out_udf,Sum_udf,Def_udf,Ctrl_udf,Res_udf);
@@ -405,7 +454,6 @@ int main(int argc, char *argv[]){
   static CTime jikan={0, 0.0, DT, DT*0.5, DT, DT*0.5};
 
   Set_avs_parameters(Avs_parameters);
-  
   if(SW_AVS){
     Init_avs(Avs_parameters);
     if(Particle_Number > 0){
@@ -420,14 +468,18 @@ int main(int argc, char *argv[]){
       if((SW_PT == chain) && !(DISTRIBUTION == user_specify)){
 	  Init_Chain(particles);
       }
+      else if((SW_PT == rigid) && !(DISTRIBUTION == user_specify)){
+	  Init_Rigid(particles);
+	  }
   }
   
   Init_zeta_k(zeta, uk_dc);
 
   {
-    Reset_phi_u(phi,up);
+    Reset_phi_u(phi, up);    
     Make_phi_u_particle(phi, up, particles);
     Zeta_k2u(zeta, uk_dc, u);
+
     Make_f_particle_dt_sole(f_particle, u, up, phi);
     Add_f_particle(u, f_particle);
     U2zeta_k(zeta, uk_dc, u);
@@ -453,11 +505,16 @@ int main(int argc, char *argv[]){
     Electrolyte_free_energy(INIT,stderr,particles,Concentration,jikan);
   }
 
+  end_time = clock();
+  block_time = ((double) (end_time - block_start))/CLOCKS_PER_SEC;
+  fprintf(stderr, "# Initialization time (s): %12.3f\n", block_time);
+  block_start = clock();
   //////////////////////////////////////////////////////////
   int resumed_ts = 0;
   if(RESUMED) resumed_ts = last_ts;
   for(jikan.ts = resumed_ts; jikan.ts <= MSTEP; jikan.ts++){
     int resumed_and_1st_loop = 0;
+
     if(RESUMED && (jikan.ts == resumed_ts)){
       resumed_and_1st_loop = 1;
     }
@@ -468,13 +525,13 @@ int main(int argc, char *argv[]){
 	  if(Particle_Number > 0){
 	    Output_avs_p(Avs_parameters, particles, jikan);
 	  }
-	  if(SW_EQ == Navier_Stokes 
-	     || SW_EQ == Shear_Navier_Stokes || SW_EQ == Shear_Navier_Stokes_Lees_Edwards
-	     ){
-	      Output_avs(Avs_parameters, zeta, uk_dc, particles, jikan);
-	  }else if(SW_EQ==Electrolyte){
-	    Output_avs_charge(Avs_parameters, zeta, uk_dc, Concentration, particles, jikan);
-	  }
+          if(SW_EQ == Navier_Stokes 
+             || SW_EQ == Shear_Navier_Stokes || SW_EQ == Shear_Navier_Stokes_Lees_Edwards
+             ){
+            Output_avs(Avs_parameters, zeta, uk_dc, particles, jikan);
+          }else if(SW_EQ==Electrolyte){
+            Output_avs_charge(Avs_parameters, zeta, uk_dc, Concentration, particles, jikan);
+          }
 	}
 
 	if(SW_UDF){// Output_UDF
@@ -484,7 +541,21 @@ int main(int argc, char *argv[]){
 	if(SW_EQ == Electrolyte){
 	    Electrolyte_free_energy(SHOW,stderr,particles, Concentration,jikan);
 	}
+	if(jikan.ts != resumed_ts){
+	  end_time = clock();
+	  block_time = ((double) (end_time - block_start))/CLOCKS_PER_SEC;
+	  global_time = ((double) (end_time - global_start))/CLOCKS_PER_SEC;
+	  fprintf(stderr, "# Step: %9d/%9d\t  Block time (m): %8.3f\t Global time (m): %8.3f/%8.3f\n", 
+		  jikan.ts,
+		  MSTEP,
+		  block_time/60.0,
+		  global_time/60.0,
+		  ((double)(MSTEP - jikan.ts + 1))/((double)GTS) * block_time/60.0);
+	  fflush(stderr);
+	  block_start = clock();
+	}
       }
+
     }
 
     Time_evolution(zeta, uk_dc, f_particle, particles, jikan);
@@ -540,6 +611,15 @@ int main(int argc, char *argv[]){
     delete ufres;
     fprintf(stderr,"#%s end.\n",Res_udf);
   }
+  global_time = ((double) (end_time - global_start))/CLOCKS_PER_SEC;
+  fprintf(stderr, "#Simulation has ended!\n");
+  fprintf(stderr, "#Total Running Time (s): %10.2f\n", global_time);
+  fprintf(stderr, "#                   (m): %10.2f\n", global_time/60.0);
+  fprintf(stderr, "#                   (h): %10.2f\n", global_time/3600.0);
+  global_time /= (double)(MSTEP - resumed_ts + 1);
+  fprintf(stderr, "#Average Step Time  (s): %10.2f\n", global_time);
+  fprintf(stderr, "#                   (m): %10.2f\n", global_time/60.0);
+  fprintf(stderr, "#                   (h): %10.2f\n", global_time/3600.0);
   delete [] particles;
   return EXIT_SUCCESS;
 }

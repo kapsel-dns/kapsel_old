@@ -1,0 +1,94 @@
+/*!
+\author J. Molina
+\date 2013/01/17
+\page page_rigid_body Rigid Body Dynamics
+\see 
+- <a href="http://arxiv.org/abs/0811.2889"> Quaternions And Dynamics</a>, Basile Graf (2007)
+- <a href="http://www.cs.cmu.edu/~baraff/pbm/rigid1.pdf"> An Introduction to Physically Based Modeling</a>, David Baraff (1997)
+- Classical Dynamics, José and Saletan (1998) and/or Classical Mechanics, Goldstein et al. (2001)
+- quaternion.h, rigid_body.h, and particle_solver.h
+\section sec_design_rigid_body_quaternion Quaternions
+Due to numerical stability, the use of Euler angles to represent rotations in simulations of rigid bodies is not recommended. One of the most popular alternatives is to use <a href="http://mathworld.wolfram.com/Quaternion.html"> quaternions </a> instead. A quaternion \f$\qtn{a}\f$ is defined as
+\f[
+\qtn{a} = a_0 + a_1\vec{i} + a_2\vec{j} + a_3\vec{k} =
+ (s, \vec{v})
+\f]
+where \f$s=a_0\f$ is the scalar (real) part and \f$\vec{v} = (a_1,a_2,a_3)\f$ is the vector (imaginary) part, \f$\vec{v}\in R^3\f$. The conjugate of the quaternion is then
+\f[
+\qtncnj{a} = (s, -\vec{v})
+\f]
+ Addition of two quaternions \f$\qtn{a}=(s_a,\vec{v}_a)\f$ and \f$\qtn{b}=(s_b,\vec{v}_b)\f$ is simply
+\f[
+\qtn{a} + \qtn{b} = (s_a, \vec{v}_a) + (s_b, \vec{v}_b) =
+(s_a + s_b, \vec{v}_a + \vec{v}_b)        
+\f]
+and multiplication can be expressed as
+\f[
+\qtn{a}\circ\qtn{b} = (s_a s_b - \vec{v}_a\cdot\vec{v}_b, 
+s_a \vec{v}_b + s_b \vec{v}_a + \vec{v}_a \times \vec{v}_b)
+\f]
+Finally, the inverse of a quaternion is defined as
+\f[
+\qtn{a}^{-1} = \frac{\qtncnj{a}}{\norm{\qtn{a}}}
+\f]
+with the norm given by \f$\norm{\qtn{a}} = a_0^2 + a_1^2 + a_2^2 + a_3^2\f$.
+\section sec_design_rigid_body_rotations Rotations
+Assume we have a body coordinate system \f$\fancy{B}\f$, with origin at the center of mass, which is attached to the rotating rigid body. Let \f$x^\prime\f$ be the representation of a given vector \f$\vec{x}\f$ in \f$\fancy{B}\f$. Now let us take a second (non-inertial) reference system \f$\fancy{S}\f$, which also has as origin the center of mass of the body, and is at all times parallel to the (inertial) fixed laboratory frame \f$\fancy{L}\f$. The representation of the vector \f$\vec{x}\f$ in this fixed space system \f$\fancy{S}\f$ is denoted by \f$x\f$, and by definition it also gives the representation with respect to the lab frame \f$\fancy{L}\f$. If \f$R\f$ is the rotation matrix from the body frame to the space frame \f$\fancy{B}\rightarrow\fancy{S}\f$, the coordinates of the two representations are related through
+\f{align*}{
+x &= R x^\prime \qquad(\text{space frame}\;\fancy{S})\\
+x^\prime &= R^{t} x\qquad(\text{body frame}\;\fancy{B})
+\f}
+The equation of motion for the orientation matrix is given by
+\f{align*}{
+\dot{R} &= \text{skew}\left(\vec{\omega}\right)\cdot R\qquad (\text{space frame}\;\fancy{S}) \\
+\dot{R} &= R\cdot\text{skew}\left(\vec{\omega}^\prime\right)\qquad (\text{body frame}\;\fancy{B})
+\f}
+where
+\f[
+\text{skew}\left(\omega\right) = \begin{pmatrix}
+ 0 & - \omega_3 & \omega_2 \\
+\omega_3 & 0 & -\omega_1 \\
+-\omega_2 & \omega_1 & 0
+\end{pmatrix}
+\f]
+
+Using Rodrigues' rotation formula, the transformation between space and body reference frames can also be expressed as a rotation by an angle \f$\theta\f$ about a given (normal) vector \f$n\f$, as
+\f[
+x^\prime = x\cos{\theta} + n (x\cdot n)\left(1-\cos{\theta}\right)
+ + \left(x\times n\right) \sin{\theta}
+\f]
+The inverse transformation being obtained by interchanging \f$x\f$ and \f$\theta\f$ with \f$x^\prime\f$ and \f$-\theta\f$, respectively. 
+In terms of quaternions, this takes the simple form
+\f{align*}{
+\qtn{x} &= (0,x) = \qtn{q}\circ\qtn{x}^\prime\circ\qtncnj{q}\qquad(\text{space frame}\;\fancy{S})\\
+\qtn{x}^\prime &= (0,x^\prime) = \qtncnj{q}\circ\qtn{x}\circ\qtn{q}\qquad(\text{body frame}\;\fancy{B})
+\f}
+where the orientation quaternion (the equivalent of the rotation matrix) is defined as
+\f[
+\qtn{q} = \left(\cos{\frac{\theta}{2}}, \sin{\frac{\theta}{2}}\vec{n}\right)\qquad \norm{q}=1
+\f]
+and it obeys the following equations of motion
+\f{align*}{
+\dot{\qtn{q}} &= \frac{1}{2}\qtn{w}\circ\qtn{q}\qquad (\text{space frame}\;\fancy{S})\\
+\dot{\qtn{q}} &= \frac{1}{2}\qtn{q}\circ\qtn{w}^\prime\qquad (\text{body frame}\;\fancy{B})
+\f}
+Finally, the rotation matrix can be expressed in terms of the quaternion components as
+\f[
+R = \begin{pmatrix}
+ q_0^2 + q_1^2 - q_2^2 - q_3^2 & 2(q_1q_2 - q_0q_3) & 2(q_1q_3 + q_0q_2)\\
+ 2(q_1q_2 + q_0q_3) & q_0^2 - q_1^2 + q_2^2 - q_3^2 & 2(q_2q_3 - q_0q_1)\\
+ 2(q_1q_3 - q_0q_2) & 2(q_2q_3 + q_0q_1) & q_0^2 - q_1^2 - q_2^2 + q_3^2
+\end{pmatrix}
+\f]
+The elements of the diagonal, together with the normalization condition \f$\norm{q} = 1\f$, provide a set of four equations for four unknowns \f$q_i^2\f$, allowing one to easily obtain the components of the rotation quaternion from a rotation matrix. 
+Futhermore, in terms of the usual Euler angles (x-convention), the rotation matrix is given by
+\f[
+R = \begin{pmatrix}
+\cos\psi\cos\phi - \cos\theta\sin\phi\sin\psi & -\sin\psi\cos\phi-\cos\theta\sin\phi\cos\psi & \sin\theta\sin\phi \\
+\cos\psi\sin\phi + \cos\theta\cos\phi\sin\psi & -\sin\psi\sin\phi + \cos\theta\cos\phi\cos\psi &
+-\sin\theta\cos\phi \\
+\sin\theta\sin\psi & \sin\theta\cos\psi & \cos\theta
+\end{pmatrix}
+\f]
+and simple inspection allows us to obtain the rotation angles from the rotation quaternions.
+*/

@@ -1,6 +1,10 @@
-//
-// $Id: f_particle.cxx,v 1.1 2006/06/27 18:41:28 nakayama Exp $
-//
+/*!
+  \file f_particle.cxx
+  \author Y. Nakayama
+  \date 2006/06/27
+  \version 1.1
+  \brief Compute Hydrodynamic force on particle
+ */
 #include "f_particle.h"
 
 double **f_particle;

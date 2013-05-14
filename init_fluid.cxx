@@ -1,7 +1,10 @@
-//
-// $Id: init_fluid.cxx,v 1.1 2006/06/27 18:41:28 nakayama Exp $
-//
-
+/*!
+  \file init_fluid.cxx
+  \brief Initialize fluid velocity fields
+  \author Y. Nakayama
+  \date 2006/06/27
+  \version 1.1
+ */
 #include "init_fluid.h"
 
 void Init_zeta_k(double **zeta, double *uk_dc){

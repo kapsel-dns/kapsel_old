@@ -1,0 +1,80 @@
+/*!
+\page page_intro Introduction
+\htmlonly
+<p><center><strong> Open Software for Direct Numerical Simulations of Particle Dispersions </strong></center></p>
+
+<p><div class="image">
+<img src="../images/kapsel_electro.jpg" title="electro-hydrodynamics.jpg" width="220" height="220" />  
+<img src="../images/kapsel_rheology.jpg" title="kapsel_rheology.jpg" width="220" height="220" />
+<img src="../images/kapsel_microfluid.jpg" alt="127.jpg" title="kapsel_microfluid.jpg" width="150" height="220" />
+<div class="caption"> 
+Electro-Hydrodynamics
+<span style="color:white">_________________</span>
+Rheology 
+<span style="color:white">_________________</span>
+Micro-Fluidics</div>
+</div></p>
+\endhtmlonly
+
+\section sec_intro_what What is KAPSEL?
+- \b KAPSEL stands for "Kyoto Advanced Particle Simulator for Electro - 
+  hydrodynamics" based on a direct numerical simulation method for colloidal
+  dispersions called \b SPM (Smoothed Profile Method). Kapsel enables us to
+  simulate dynamics of solid particles dispersed in simple and complex fluids.
+  Kapsel enables us to simulate complex rheological properties of colloidal
+  dispersions, electrophoresis of charged colloids, etc.
+- \b KAPSEL-2 is the latest version fo KAPSEL. It can introduce thermal
+  fluctuations to the system and also perform rheology simulations under 
+  steady sheare or oscillatory shear flow being fully compatible with usual
+  periodic boundary conditions. Computational efficiency is also much improved
+  from the original version so that one can simulate larger systems.
+- \b KAPSEL is a software free to use. To download and use KAPSEL, one must 
+  agree with the \ref page_license "KAPSEL license agreement".
+
+\section sec_intro_history Kapsel's History
+- \b KAPSEL-3
+  - [30 Apr 2013] Kapsel-3.beta release (implemented self-propelled "squirmers" & rigid bodies, added Doxygen documentation)
+- \b KAPSEL-2
+  - [30 Mar 2011] KAPSEL-2.10 release (newly implemented Lees-Edwards sheared
+     periodic boundary conditions).
+  - [10 Aug 2009] KAPSEL-2.00 release
+  - [04 Aug 2009] KAPSEL-2.beta pre-release
+  - [10 Aug 2009] <a href="http://www-tph.cheme.kyoto-u.ac.jp/kapsel/index.php?FrontPage"> KAPSEL Homepage </a> renewal open
+- \b KAPSEL
+  - [10 Jan 2007] <a href="http://www.kona.or.jp/search/24_167.pdf"> English manual (for KAPSEL version 1)</a> published on-line
+  - [31 May 2006] Kapsel release
+
+\section sec_intro_biblio Related Papers
+- \b Simulation method & algorithm
+  - [1] Y. Nakayama, K. Kim and R. Yamamoto, "Simulating (electro) hydrodynamic
+  effects in colloidal dispersions: smoothed profiled method",<br>
+  <a href="http://www.springerlink.com/content/p450786m816x6473/"> Eur. Phys. J. E., 26, 361-368 (2008) </a>
+  - [2] T. Iwashita, Y. Nakayama and R. Yamamoto, "A numerical model for Brownian
+  particles fluctuating in incompressible fluids",<br>
+  <a href="http://jpsj.ipap.jp/link?JPSJ/77/074007/"> J. Phys. Soc. Jpn., 77, 074007 (2008) </a>
+  - [3] H. Kobayashi and R. Yamamoto, "Implementation of Lees-Edwards periodic boundary conditions
+  for direct numerical simulations of particle dispersions under shear flow", <br>
+  <a href="http://jcp.aip.org/resource/1/jcpsa6/v134/i6/p064110_s1"> Phys. Rev. E, 83, 026702 (2011) </a>
+  - [4] S. Jafari, R. Yamamoto and M. Rahnama, "Lattice-Boltzmann method
+  combined with smoothed profile method for particulate suspensions",<br>
+  <a href="http://pre.aps.org/abstract/PRE/v83/i2/e026702"> Phys. Rev. E, 83, 026702 (2011) </a>
+- \b Diffusion in incompressible fluid
+  - [5] T. Iwashita and R. Yamamoto, "Short-time motion of Brownian particles in
+  a shear flow",<br>
+  <a href="http://pre.aps.org/abstract/PRE/v79/i3/e031401"> Phys. Rev. E, 79, 031401 (2009) </a>
+- \b Electrophoresis
+  - [6] K. Kim, Y. Nakayama and R. Yamamoto, "Direct Numerical Simulations of
+  Electrophoresis of Charged Colloids",<br>
+  <a href="http://prl.aps.org/abstract/PRL/v96/i20/e208302"> Phys. Rev. Lett., 96, 208306 (2006) </a>
+- \b Colloids in liquid crystal
+  - [7] R. Yamamoto, "Simulating particle dispersions in nematic liquid-crystal
+  solvents",<br>
+  <a href="http://prl.aps.org/abstract/PRL/v87/i7/e075502"> Phys. Rev. Lett., 87, 075502 (2001) </a>
+- \b Sedimentation
+  - [8] A. Hamid, R. Yamamoto, "Direct numerical simulations of anisotropic diffusion 
+  of spherical particles in sedimentation", <br>
+  <a href="http://pre.aps.org/abstract/PRE/v87/i2/e022310"> Phys. Rev. E., 87, 022310 (2013)</a>
+- \b Self-Propelled Active Particles
+  - [9] J. Molina, Y. Nakayama, R. Yamamoto, "Hydrodynamic interactions of self-propelled swimmers",<br>
+  <a href="http://pubs.rsc.org/en/Content/ArticleLanding/2013/SM/c3sm00140g"> Soft Matter, 9, 4923 (2013)</a>
+*/

@@ -1,6 +1,10 @@
-//
-// $Id: avs_output_p.h,v 1.1 2006/06/27 18:41:28 nakayama Exp $
-//
+/*!
+  \file avs_output_p.h
+  \author Y. Nakayama
+  \date 2006/06/27
+  \version 1.1
+  \brief Output routines for particle data in AVS/Express format (header file)
+ */
 #ifndef AVS_OUTPUT_P_H
 #define AVS_OUTPUT_P_H
 

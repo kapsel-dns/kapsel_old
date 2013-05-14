@@ -1,0 +1,78 @@
+/*!
+\author J. Molina
+\date 2012/04/9
+\page page_design_ssolver Solute Solver
+\section sec_design_ssolver_basic Multi-component fluid equations
+To consider the case of colloids in electrolyte solutions, we assume that the solute is much smaller than the colloids and can be represented by a continuous concentration field. The Navier-Stokes equation of incompressible flow takes the form
+\f[
+\pd{\vec{u}}{t} = -\nabla\cdot(\vec{u}\vec{u}) - \frac{1}{\rho}\nabla p
++ \nu \nabla^2\vec{u} - \frac{1}{\rho}\sum_\alpha C_\alpha \nabla\mu_\alpha
+\f]
+again \f$\rho\f$ and \f$\nu\f$ are the density and kinematic viscosity of the \e solvent (i.e. we do not take into account any variations due to the presence of the solute), and \f$\vec{u}\f$ is the \c total fluid velocity field (colloids + fluid). The only difference with respect to the solute-free NS equation discussed \link page_design_fsolver previously\endlink is the presence of the solute term \f$C_\alpha \nabla\mu_\alpha\f$, where \f$C_\alpha\f$ and \f$\mu_\alpha\f$ refer to the concentration and chemical potential of species \f$\alpha\f$. For electrolyte solutions, the last term can be evaluated with the help of the Poisson-Nernst-Plank equation
+\f[
+\mu_{\alpha}(\vec{r}) = \kbt \ln{C_\alpha} + Z_\alpha e(\Phi - \vec{E}^{\text{ext}}\cdot\vec{r})
+\f]
+where \f$Z_\alpha\f$ is the valency of species \f$\alpha\f$ (\f$e\f$ is the elementary charge), \f$\vec{E}^{\text{ext}}\f$ refers to any externally applied field, and \f$\Phi\f$ is the electrostatic potential, which satisfies Poisson's equation
+\f[
+\epsilon\nabla^2\Phi = -\rho_e
+\f]
+where \f$\epsilon\f$ is the dielectric constant of the fluid, and \f$\rho_e\f$ is the total electrostatic density field (i.e. it includes the charges on the colloids). The NS equation for the velocity can then be expressed as
+\f[
+\pd{\vec{u}}{t} = -\frac{1}{\rho}\nabla (p + p^{\text{osm}}) - 
+  \nabla\cdot(\vec{u}\vec{u}) + \nu\nabla^2\vec{u}
+  - \frac{1}{\rho}\sum_\alpha C_\alpha Z_\alpha e \nabla\Phi^{\text{tot}}
+\f]
+where \f$p^{\text{osm}}=\sum_\alpha\kbt C_\alpha\f$ represents the (ideal) solute contribution to the pressure and 
+\f[\Phi^{\text{tot}} = \Phi - \vec{E}^{\text{ext}}\cdot\vec{r}\f]
+is the total electrostatic field.
+
+The conservation laws for the solute species provides the final set of equations needed to obtain a closed system
+\f{eqnarray*}{
+  \pd{C_\alpha}{t} &=& -\nabla\cdot (\vec{j}_{\alpha}^s + \vec{j}_\alpha^d)\\
+  \vec{j}_\alpha^s &=& -C_\alpha\vec{u}\\
+  \vec{j}_\alpha^d &=& -\kbt\Gamma_\alpha\nabla C_\alpha - \Gamma_\alpha Z_\alpha e C_\alpha \nabla\Phi^{\text{tot}}
+\f}
+where we have assumed that the solute velocity can be decomposed into a streaming term (due to the fluid motion) and a diffusive term (due to the chemical potential gradient)
+\f[
+\vec{u}_\alpha = \vec{u} - \Gamma_\alpha\nabla\mu_\alpha
+\f]
+with \f$\kbt\Gamma_\alpha\f$ the diffusivity of species \f$\alpha\f$. To prevent the solute from diffusing into the particle domains, we impose the impermeability condition on the solute flux
+\f[
+\vec{j}_\alpha\longrightarrow \vec{j}_\alpha^s + (\tensor{I} - \vec{n}\vec{n})\cdot\vec{j}_\alpha^d
+\f]
+where \f$\vec{n}(\vec{r})\f$ is a unit surface normal vector field defined in the colloid/fluid interface domain.
+\subsection ssec_ssolver_basic_working Working equations
+Adopting the same representation as before, the NS equation can be written in terms of the reduced vorticity field \f$\ft{\vec{\zeta}}\f$, in reciprocal space, as
+\f[
+\pd{\ft{\vec{\zeta}}(\vec{k})}{t} = -\ft{\vec{\Omega}}^*(\vec{k}) - \nu (2\pi k)^2\ft{\vec{\zeta}}(\vec{k}) - \frac{1}{\rho} \ft{\vec{\Psi}}^*(\vec{k})
+\f]
+with
+\f[
+\vec{\Psi}(\vec{r}) = \nabla\times\left[\left(\sum_\alpha Z_\alpha e C_{\alpha}(\vec{r})\right) \nabla\Phi^{\text{tot}}(\vec{r})\right]
+\f]
+As before, \f$(*)\f$ denotes a vector field in the reduced vorticity representation. The conservation equations for the solute are also easily solved in Fourier space
+\f[
+\pd{\ft{C}_\alpha}{t} = (2\pi i)\vec{k}\cdot{\ft{\vec{j}}_\alpha}
+\f]
+
+We are left with two first order differential equations which can be solved using a simple Euler scheme
+\f{eqnarray*}{
+ \pd{f}{t} &=& g(t) \\
+ f(t_n + h) &=& f(t_n) + \int_{t_n}^{t_n+h}\df{s}g(s) \\
+ &\simeq& f(t_n) + h g(t_n)
+\f}
+\subsection ssec_ssolver_basic_outline Code outline
+We now give a brief outline of how the solution to these coupled equations (for \f$\vec{\zeta}\f$ and \f$C_\alpha\f$) is performed in the code when the calling function \ref NSsolute_solver_Euler is invoked (for the simple case without shear). The relevant functions are defined in \ref solute_rhs.h and \ref operate_electrolyte.h .
+-# \ref Rhs_NS_Nernst_Planck returns the various terms appearing in the right hand side of the two sets of equations (fluid/solute), with the exception of the solute source term \f$\Psi\f$ for the NS equation.
+  -# \ref Conc_k2charge_field computes the total charge field (solute+colloids) \f$\rho_e\f$
+  -# \ref Charge_field_k2Coulomb_potential_k_PBC solves Poisson's equation to compute \f$\Phi\f$
+  -# \ref Add_constant_field_k computes the total electrostatic potential \f$\Phi^{\text{tot}} = \Phi - \vec{E}^{\text{ext}}\cdot\vec{r}\f$
+  -# \ref Rhs_NS_solute computes the different terms appearing in the rhs of the equations
+    -# \ref Diffusion_flux_single computes the single ion diffusion flux \f$-\kbt\Gamma_\alpha\nabla C_\alpha\f$
+    -# \ref Solute_solver_rhs_nonlinear_x_single computes the total ion flux \f$\vec{j}_\alpha^d\f$
+    -# \ref Solute_impermeability enforces impermeability condition on solute flux
+    -# \ref Rhs_solvent computes the advection contribution to the rhs of the NS equation
+    -# \ref Add_zeta_viscous_term Adds the remaining viscous term to rhs of the NS equation
+-# \ref Field_solver_Euler updates the fluid velocity and solute concentration fields
+\note The missing contribution to the fluid equation of motion, due to the solute (the term in \f$\Psi\f$), is computed at a later stage by \ref Make_Coulomb_force_x_on_fluid (and is actually done in real space).
+*/

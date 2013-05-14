@@ -1,14 +1,16 @@
-//
-// $Id: init_particle.cxx,v 1.2 2006/07/28 14:49:26 nakayama Exp $
-//
+/*!
+  \file init_particle.cxx
+  \brief Initialize particle properties
+  \details Initializes positions, velocities, forces, torques on particles
+  \author Y. Nakayama
+  \date 2006/07/28
+  \version 1.1
+ */
+
 #include "init_particle.h"
 
 void Init_Particle(Particle *p){
-  Particle_domain(Phi
-		  ,NP_domain, Sekibun_cell
-		  ,NP_domain_interface, Sekibun_cell_interface
-		  ,NP_domain_exponential, Sekibun_cell_exponential
-		  );
+  Particle_domain(Phi, NP_domain, Sekibun_cell);
 
   if(ROTATION){
     Angular2v = Angular2v_rot_on;
@@ -152,8 +154,6 @@ void Init_Particle(Particle *p){
 	  for(int d=0; d< DIM; d++){
 	    p[n].fr[d] = 0.0;
 	    p[n].fr_previous[d] = 0.0;
-	    p[n].fv[d] = 0.0;
-	    p[n].fv_previous[d] = 0.0;
 	  }
 	}
 	  const double save_A_R_cutoff = A_R_cutoff;
@@ -209,8 +209,6 @@ void Init_Particle(Particle *p){
 	for(int d=0; d< DIM; d++){
 	  p[n].fr[d] = 0.0;
 	  p[n].fr_previous[d] = 0.0;
-	  p[n].fv[d] = 0.0;
-	  p[n].fv_previous[d] = 0.0;
 	}
       }
       {
@@ -242,15 +240,64 @@ void Init_Particle(Particle *p){
       ufout->put(target.sub("R.x"),p[i].x[0]);
       ufout->put(target.sub("R.y"),p[i].x[1]);
       ufout->put(target.sub("R.z"),p[i].x[2]);
+
       ufin->get(target.sub("v.x"),p[i].v[0]);
       ufin->get(target.sub("v.y"),p[i].v[1]);
       ufin->get(target.sub("v.z"),p[i].v[2]);
       ufout->put(target.sub("v.x"),p[i].v[0]);
       ufout->put(target.sub("v.y"),p[i].v[1]);
       ufout->put(target.sub("v.z"),p[i].v[2]);
+
+      if(ROTATION && ORIENTATION == user_dir){
+	double q0,q1,q2,q3;
+	ufin->get(target.sub("q.q0"), q0);
+	ufin->get(target.sub("q.q1"), q1);
+	ufin->get(target.sub("q.q2"), q2);
+	ufin->get(target.sub("q.q3"), q3);
+	ufout->put(target.sub("q.q0"), q0);
+	ufout->put(target.sub("q.q1"), q1);
+	ufout->put(target.sub("q.q2"), q2);
+	ufout->put(target.sub("q.q3"), q3);
+	qtn_init(p[i].q, q0, q1, q2, q3);
+
+	ufin->get(target.sub("omega.x"), p[i].omega[0]);
+	ufin->get(target.sub("omega.y"), p[i].omega[1]);
+	ufin->get(target.sub("omega.z"), p[i].omega[2]);
+	ufout->put(target.sub("omega.x"), p[i].omega[0]);
+	ufout->put(target.sub("omega.y"), p[i].omega[1]);
+	ufout->put(target.sub("omega.z"), p[i].omega[2]);
+        
+	qtn_normalize(p[i].q);
+	qtn_init(p[i].q_old, p[i].q);
+      }else{
+        qtn_init(p[i].q, 1.0, 0.0, 0.0, 0.0);
+        qtn_isnormal(p[i].q);
+        qtn_init(p[i].q_old, p[i].q);
+      }
+    }
+    // initialize rigid status
+    if(SW_PT == rigid){
+      init_set_xGs(p);
+      set_Rigid_MMs(p);
+      set_particle_vomegas(p);	// ### caution ### v.x, v.y, v.z are ignored and set Rigid_Velocities and Rigid_Omegas
+    }
+    // output p.x and p.v
+    for(int i=0; i<Particle_Number; i++){
+      double phi;
+      double nv[DIM];
+      rqtn_rv(phi, nv, p[i].q);      
       fprintf(stderr,"# %d-th particle position (p_x, p_y, p_z)=(%g, %g, %g)\n",i,p[i].x[0],p[i].x[1],p[i].x[2]);
       fprintf(stderr,"# %d-th particle velocity (p_vx, p_vy, p_vz)=(%g, %g, %g)\n",i,p[i].v[0],p[i].v[1],p[i].v[2]);
+      fprintf(stderr, "# %d-th particle orientation  (phi, nx, ny, nz) =(%g, %g, %g, %g)\n", 
+              i, phi*180.0/M_PI, nv[0], nv[1], nv[2]);
+      fprintf(stderr, "# %d-th particle [space frame] angular velocity  (p_wx, p_wy, p_wq) =(%g, %g, %g)",
+              i, p[i].omega[0], p[i].omega[1], p[i].omega[2]);
+      /*for(int rigidID=0; rigidID<Rigid_Number; rigidID++) 
+        fprintf(stderr, "debug: xGs[%d] = (%f, %f, %f)\n", rigidID, xGs[rigidID][0], xGs[rigidID][1], xGs[rigidID][2]);
+        for(int rigidID=0; rigidID<Rigid_Number; rigidID++) 
+        fprintf(stderr, "debug: Rigid_Masses[%d] = %f\n", rigidID, Rigid_Masses[rigidID]);*/
     }
+
     fprintf(stderr,"############################\n");
     if(!RESUMED){
       delete ufin;
@@ -281,6 +328,38 @@ void Init_Particle(Particle *p){
     }
   }
 
+  //set orientation
+  if(ROTATION){
+    if(ORIENTATION == random_dir){
+      for(int i = 0; i < Particle_Number; i++){
+	random_rqtn(p[i].q);
+	qtn_isnormal(p[i].q);
+	qtn_init(p[i].q_old, p[i].q);
+      }
+    }else if(ORIENTATION == space_dir ||
+	     (ORIENTATION == user_dir && DISTRIBUTION != user_specify)){
+      for(int i = 0; i < Particle_Number; i++){
+	qtn_init(p[i].q, 1.0, 0.0, 0.0, 0.0);
+	qtn_isnormal(p[i].q);
+	qtn_init(p[i].q_old, p[i].q);
+      }
+    }else if(ORIENTATION == user_dir && DISTRIBUTION == user_specify){
+      // do nothing orientation already read
+    }
+    else{
+      fprintf(stderr, "Error: wrong ORIENTATION\n");
+      fprintf(stderr, "%d %d %d\n", ORIENTATION, space_dir, user_dir);
+      fprintf(stderr, "%d %d \n", DISTRIBUTION, user_specify);
+      exit_job(EXIT_FAILURE);
+    }
+  }else{
+    for(int i = 0; i < Particle_Number; i++){
+      qtn_init(p[i].q, 1.0, 0.0, 0.0, 0.0);
+      qtn_isnormal(p[i].q);
+      qtn_init(p[i].q_old, p[i].q);
+    }
+  }
+
   // species, velocity, angular velocity
   int offset=0;
   SRA(GIVEN_SEED, 10);
@@ -288,30 +367,41 @@ void Init_Particle(Particle *p){
     for(int n = 0; n < Particle_Numbers[j] ; n++){
       int i= offset + n;
       p[i].spec = j;
+      p[i].mass = 0.0;
+      p[i].surface_mass = 0.0;
       for(int d=0; d< DIM; d++){
+	p[i].x_nopbc[d] = p[i].x[d];
 	p[i].v[d] = 0.e0 * RA();
 	p[i].v_old[d] = 0.e0;
+	p[i].v_slip[d] = 0.0;
 	p[i].f_hydro[d] = 0.0;
-	//p[i].f_hydro_previous[d] = 0.0;
+	p[i].f_hydro_previous[d] = 0.0;
 	p[i].f_hydro1[d] = 0.0;
+	p[i].f_slip[d] = 0.0;
+	p[i].f_slip_previous[d] = 0.0;
 	p[i].fr[d] = 0.0;
 	p[i].fr_previous[d] = 0.0;
-	p[i].fv[d] = 0.0;
-	p[i].fv_previous[d] = 0.0;
 
-	p[i].f_collison[d] = 0.0;
-	p[i].f_collison_previous[d] = 0.0;
-	
 	p[i].omega[d] = 0.0e0 *RA();
 	p[i].omega_old[d] = 0.0;
+	p[i].omega_slip[d] = 0.0;
 	p[i].torque_hydro[d] = 0.0;
-	//p[i].torque_hydro_previous[d] = 0.0;
+	p[i].torque_hydro_previous[d] = 0.0;
 	p[i].torque_hydro1[d] = 0.0;
-	p[i].torquer[d] = 0.0;
-	p[i].torquer_previous[d] = 0.0;
-	p[i].torquev[d] = 0.0;
-	p[i].torquev_previous[d] = 0.0;
+	p[i].torque_slip[d] = 0.0;
+	p[i].torque_slip_previous[d] = 0.0;
+
+        p[i].momentum_depend_fr[d] = 0.0;
+
+	p[i].mass_center[d] = 0.0;
+	p[i].surface_mass_center[d] = 0.0;
+	p[i].surface_dv[d] = 0.0;
+	p[i].surface_dw[d] = 0.0;
+	for(int l = 0; l < DIM; l++){
+	  p[i].inertia[d][l] = 0.0;
+	  p[i].surface_inertia[d][l] = 0.0;
       }
+    }
     }
     offset += Particle_Numbers[j]; 
   }
@@ -429,15 +519,10 @@ void Show_parameter(AVS_parameters Avs_parameters, Particle *p){
 	}else {
 	  fprintf(fp,"# w/o rotation of particle\n");
 	}
-    if(STOKES){
-	fprintf(fp,"# fluid advection is OMITTED.\n");
-      }else {
-	fprintf(fp,"# with fluid advection.\n");
-      }
     if(FIX_CELL){
 	fprintf(fp,"# time-dependent average pressure gradient ASSIGNED in");
 	for(int d=0;d<DIM;d++){
-	  char *xyz[DIM]={"x","y","z"};
+	const char *xyz[DIM] = {"x", "y", "z"};
 	  if(FIX_CELLxyz[d]){
 	    fprintf(fp," %s-",xyz[d]);
 	  }
@@ -621,7 +706,117 @@ void Init_Chain(Particle *p){
            overlap = 0 ; 
        }
        }while(overlap);
+    
+    qtn_init(p[n].q, 1.0, 0.0, 0.0, 0.0);
+    qtn_init(p[n].q_old, p[n].q);
      }
 
+}
+
+void Init_Rigid(Particle *p){
+	fprintf(stderr, "#init_particle: Rigid chain distributed linear ");
+	fprintf(stderr,"(VF, VF_LJ) = %g %g\n", VF, VF_LJ);
+	
+	double dmy, dmy0, dmy1, dmy2;
+	
+	for(int d=0; d<1000; d++) dmy = RAx(PI2);
+	
+	double overlap_length = 0.9 * SIGMA;
+	
+	int rigidID = -1;
+	int m, n = 0, rn = 0;
+	while(n < Particle_Number){
+		if(rigidID != Particle_RigidID[n] || rn == 0){
+			rigidID += 1;
+			while(1){	// set the 1-st particle of a rigid
+				dmy = RAx(L_particle[0]);
+				p[n].x[0] = dmy;
+				dmy = RAx(L_particle[1]);
+				p[n].x[1] = dmy;
+				dmy = RAx(L_particle[2]);
+				p[n].x[2] = dmy;
+				for(int d=0; d<DIM; d++) p[n].x[d] = fmod(p[n].x[d] + L_particle[d], L_particle[d]);
+				fprintf(stderr, "debug0: p[%d]: (%f, %f, %f)\n", n, p[n].x[0], p[n].x[1], p[n].x[2]);
+				for(m=0; m<n; m++){
+					if(Distance(p[m].x, p[n].x) <= overlap_length){
+						fprintf(stderr, "debug0: p[%d] and p[%d] overlap...\n", m, n);
+						break;
+					}
+				}
+				if(m >= n){
+					rn = 1;
+					break;
+				}
+			}
+		}
+		else if(rn == 1){
+			while(1){	// set the 2-nd particle of a rigid
+				dmy0 = 0.96 * SIGMA;
+				dmy1 = RAx(M_PI);
+				dmy2 = RAx(PI2);
+				p[n].x[0] = p[n-1].x[0] + dmy0*sin(dmy1)*cos(dmy2);
+				p[n].x[1] = p[n-1].x[1] + dmy0*sin(dmy1)*sin(dmy2);
+				p[n].x[2] = p[n-1].x[2] + dmy0*cos(dmy1);
+				for(int d=0; d<DIM; d++) p[n].x[d] = fmod(p[n].x[d] + L_particle[d], L_particle[d]);
+				fprintf(stderr, "debug1: p[%d]: (%f, %f, %f)\n", n, p[n].x[0], p[n].x[1], p[n].x[2]);
+				for(m=0; m<n; m++){
+					if(Distance(p[m].x, p[n].x) <= overlap_length){
+						fprintf(stderr, "debug1: p[%d] and p[%d] overlap...\n", m, n);
+						break;
+					}
+				}
+				if(m >= n){
+					xGs[rigidID][0] = p[n-1].x[0] + dmy0*sin(dmy1)*cos(dmy2);
+					xGs[rigidID][1] = p[n-1].x[1] + dmy0*sin(dmy1)*sin(dmy2);
+					xGs[rigidID][2] = p[n-1].x[2] + dmy0*cos(dmy1);
+					for(int d=0; d<DIM; d++) xGs[rigidID][d] = fmod(xGs[rigidID][d] + 100.*L_particle[d], L_particle[d]);
+					if(Rigid_Particle_Numbers[rigidID] % 2 == 0){
+						GRvecs[n-1][0] = - (Rigid_Particle_Numbers[rigidID]/2 - 0.5) * dmy0*sin(dmy1)*cos(dmy2);
+						GRvecs[n-1][1] = - (Rigid_Particle_Numbers[rigidID]/2 - 0.5) * dmy0*sin(dmy1)*sin(dmy2);
+						GRvecs[n-1][2] = - (Rigid_Particle_Numbers[rigidID]/2 - 0.5) * dmy0*cos(dmy1);
+					}
+					else{
+						GRvecs[n-1][0] = - (Rigid_Particle_Numbers[rigidID]/2) * dmy0*sin(dmy1)*cos(dmy2);
+						GRvecs[n-1][1] = - (Rigid_Particle_Numbers[rigidID]/2) * dmy0*sin(dmy1)*sin(dmy2);
+						GRvecs[n-1][2] = - (Rigid_Particle_Numbers[rigidID]/2) * dmy0*cos(dmy1);
+					}
+					GRvecs[n][0] = GRvecs[n-1][0] + dmy0*sin(dmy1)*cos(dmy2);
+					GRvecs[n][1] = GRvecs[n-1][1] + dmy0*sin(dmy1)*sin(dmy2);
+					GRvecs[n][2] = GRvecs[n-1][2] + dmy0*cos(dmy1);
+					rn += 1;
+					break;
+				}
+			}
+		}
+		else{
+			while(1){	// set 3-rd...
+				p[n].x[0] = p[n-1].x[0] + dmy0*sin(dmy1)*cos(dmy2);
+				p[n].x[1] = p[n-1].x[1] + dmy0*sin(dmy1)*sin(dmy2);
+				p[n].x[2] = p[n-1].x[2] + dmy0*cos(dmy1);
+				for(int d=0; d<DIM; d++) p[n].x[d] = fmod(p[n].x[d] + L_particle[d], L_particle[d]);
+				fprintf(stderr, "debug2: p[%d]: (%f, %f, %f)\n", n, p[n].x[0], p[n].x[1], p[n].x[2]);
+				for(m=0; m<n; m++){
+					if(Distance(p[m].x, p[n].x) <= overlap_length){
+						fprintf(stderr, "debug2: p[%d] and p[%d] overlap...\n", m, n);
+						n -= rn + 1;
+						rigidID -= 1;
+						rn = 0;
+						break;
+					}
+				}
+				if(rn == 0) break;
+				if(m >= n){
+					GRvecs[n][0] = GRvecs[n-1][0] + dmy0*sin(dmy1)*cos(dmy2);
+					GRvecs[n][1] = GRvecs[n-1][1] + dmy0*sin(dmy1)*sin(dmy2);
+					GRvecs[n][2] = GRvecs[n-1][2] + dmy0*cos(dmy1);
+					rn += 1;
+					break;
+				}
+			}
+		}
+		n += 1;
+	}
+	set_Rigid_MMs(p);
+	set_particle_vomegas(p);
 }
 

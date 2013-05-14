@@ -1,6 +1,12 @@
-//
-// $Id: macro.h,v 1.1 2006/06/27 18:41:28 nakayama Exp $
-//
+/*!
+  \file macro.h
+  \brief Global parameters and macro function definitions
+  \details Defines various constants and low-level functions
+  \author Y. Nakayama
+  \date 2006/06/27
+  \version 1.1
+ */
+
 #ifndef MACRO_H_
 #define MACRO_H_
 
@@ -8,6 +14,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <limits.h>
+#include <float.h>
 #include <time.h>
 
 
@@ -20,6 +27,10 @@ const double One_third= 1./3.;
 const double Root_six= sqrt(6.);
 const double Root_two= sqrt(2.);
 const double Root_three= sqrt(3.);
+const double EPSILON_MP= DBL_EPSILON;// E-16
+const double TOL_MP=10.0*EPSILON_MP;// E-15
+const double LARGE_TOL_MP=1.0e3*TOL_MP;// E-12
+const double HUGE_TOL_MP=1.0e6*LARGE_TOL_MP;//E-6
 /////////////////////// inline function prototype if necessary
 void exit_job(int status);
 // 
@@ -55,7 +66,7 @@ inline void SRA(const int &SW_seed, const unsigned int &seed){
       fprintf(stderr, "# rand_seed= time(NULL)\n");
    }else if(SW_seed == GIVEN_SEED){
       srand(seed);
-      fprintf(stderr, "# rand_seed= %lu\n",seed);
+      fprintf(stderr, "# rand_seed= %u\n",seed);
     }else {
       fprintf(stderr, "SRA(): invalid SW_seed.\n");
       exit_job(EXIT_FAILURE);
@@ -65,9 +76,51 @@ inline double RA(){// uniform in [-1, 1]
     return (2.0*((double)rand() - RAND_MAX*0.5)/(RAND_MAX));
 }
 inline double RAx(const double &x){ // uniform in [0, x)
-    return (double)rand()/RAND_MAX * x;
+	return (double)rand()/RAND_MAX * x;
 }
+//random point inside unit circle
+inline void RA_circle(double &a, double &b){
+  int inside = 0;
+  do{
+    a = RA();
+    b = RA();
+    if(a*a + b*b <= 1){
+      inside = 1;
+    }
+  }while(!inside);
+}
+//random point on unit circle
+inline void RA_on_circle(double &a, double &b){
+  RA_circle(a, b);
+  double norm = 1.0/sqrt(a*a + b*b);
+  a *= norm;
+  b *= norm;
+}
+//random point on 3D/4D unit sphere
+// Numerical Recipes, Edition 3, pg. 1130
+// G. Marsaglia, Annals of Mathematical Statistics, 43(2), 645-646 (1972)
+inline void RA_on_sphere3D(double &a, double &b, double &c){
+  double u0, u1, sqnorm, dmy;
 
+  RA_circle(u0,u1);
+  sqnorm = u0*u0 + u1*u1;
+  dmy = sqrt(1.0 - sqnorm);
+
+  a = 2.0 * u0 * dmy;
+  b = 2.0 * u1 * dmy;
+  c = 1.0 - 2.0 * sqnorm;
+}
+inline void RA_on_sphere4D(double &a, double &b, double &c, double &d){
+  double u0, u1, u2, u3, scale;
+
+  RA_circle(u0,u1);
+  RA_circle(u2,u3);
+  scale = sqrt( (1.0 - (u0*u0 + u1*u1)) / (u2*u2 + u3*u3)  );
+  a = u0;
+  b = u1;
+  c = u2 * scale;
+  d = u3 * scale;
+}
 /////////////////////// macro for simple arithmetics
 inline double POW6(const double x){
   double dmy = x*x*x;
@@ -101,6 +154,43 @@ inline double SGN(const double &a){
     return a>=0?1.:-1.;
 }
 
+inline bool equal_tol(const double &a, const double &b, const double &rtol, 
+		      const double &atol = TOL_MP){
+  if(a == b) return true;
+
+  double diff = ABS(a-b);
+  if(diff <= atol) return true;
+  
+  double eps = MAX(ABS(a), ABS(b)) * rtol;
+  return (diff <= eps ? true : false);
+}
+inline bool equal_mp(const double &a, const double &b){
+  if(a == b) return true;
+  double eps = (MAX(ABS(a), ABS(b)) + 10.0)*EPSILON_MP;
+  return (ABS(a - b) <= eps ? true: false);
+}
+inline bool greater_than_mp(const double &a, const double &b){
+  double eps = (MAX(ABS(a), ABS(b)) + 10.0)*EPSILON_MP;
+  return (a-b) > eps;
+}
+inline bool less_than_mp(const double &a, const double &b){
+  double eps = (MAX(ABS(a), ABS(b)) + 10.0)*EPSILON_MP;
+  return (b-a) > eps;
+}
+inline bool non_zero_mp(const double &a){
+  return (a > TOL_MP) || (-TOL_MP > a);
+}
+inline bool zero_mp(const double &a){
+  return !non_zero_mp(a);
+}
+inline bool positive_mp(const double &a){
+  return a > TOL_MP;
+}
+inline bool negative_mp(const double &a){
+  return -TOL_MP > a;
+}
+
+///
 inline void exit_job(int status){
   exit(status);
 }

@@ -1,7 +1,10 @@
-//
-// $Id: fftsg3d.c,v 1.1 2006/06/27 18:41:28 nakayama Exp $
-//
-/*
+/*!
+  \file fftsg3d.c
+  \author T. Ooura
+  \author Y. Nakayama
+  \version 1.1
+  \brief Ooura's 3D FFT routines
+  \details
 Fast Fourier/Cosine/Sine Transform
     dimension   :three
     data length :power of 2
@@ -33,14 +36,14 @@ macro definitions
 
 -------- Complex DFT (Discrete Fourier Transform) --------
     [definition]
-        <case1>
+        -case1:
             X[k1][k2][k3] = sum_j1=0^n1-1 sum_j2=0^n2-1 sum_j3=0^n3-1
                                 x[j1][j2][j3] * 
                                 exp(2*pi*i*j1*k1/n1) * 
                                 exp(2*pi*i*j2*k2/n2) * 
                                 exp(2*pi*i*j3*k3/n3), 
                                 0<=k1<n1, 0<=k2<n2, 0<=k3<n3
-        <case2>
+        -case2:
             X[k1][k2][k3] = sum_j1=0^n1-1 sum_j2=0^n2-1 sum_j3=0^n3-1
                                 x[j1][j2][j3] * 
                                 exp(-2*pi*i*j1*k1/n1) * 
@@ -49,10 +52,10 @@ macro definitions
                                 0<=k1<n1, 0<=k2<n2, 0<=k3<n3
         (notes: sum_j=0^n-1 is a summation from j=0 to n-1)
     [usage]
-        <case1>
+        -case1-
             ip[0] = 0; // first time only
             cdft3d(n1, n2, 2*n3, 1, a, t, ip, w);
-        <case2>
+        -case2
             ip[0] = 0; // first time only
             cdft3d(n1, n2, 2*n3, -1, a, t, ip, w);
     [parameters]
@@ -104,7 +107,7 @@ macro definitions
 
 -------- Real DFT / Inverse of Real DFT --------
     [definition]
-        <case1> RDFT
+        case1: RDFT
             R[k1][k2][k3] = sum_j1=0^n1-1 sum_j2=0^n2-1 sum_j3=0^n3-1
                                 a[j1][j2][j3] * 
                                 cos(2*pi*j1*k1/n1 + 2*pi*j2*k2/n2 + 
@@ -115,7 +118,7 @@ macro definitions
                                 sin(2*pi*j1*k1/n1 + 2*pi*j2*k2/n2 + 
                                     2*pi*j3*k3/n3), 
                                 0<=k1<n1, 0<=k2<n2, 0<=k3<n3
-        <case2> IRDFT (excluding scale)
+        case2: IRDFT (excluding scale)
             a[k1][k2][k3] = (1/2) * sum_j1=0^n1-1 sum_j2=0^n2-1 sum_j3=0^n3-1
                                 (R[j1][j2][j3] * 
                                 cos(2*pi*j1*k1/n1 + 2*pi*j2*k2/n2 + 
@@ -128,10 +131,10 @@ macro definitions
                 I[(n1-k1)%n1][(n2-k2)%n2][(n3-k3)%n3] = -I[k1][k2][k3], 
                 0<=k1<n1, 0<=k2<n2, 0<=k3<n3)
     [usage]
-        <case1>
+        case1:
             ip[0] = 0; // first time only
             rdft3d(n1, n2, n3, 1, a, t, ip, w);
-        <case2>
+        case2:
             ip[0] = 0; // first time only
             rdft3d(n1, n2, n3, -1, a, t, ip, w);
     [parameters]
@@ -143,7 +146,7 @@ macro definitions
                 n3 >= 2, n3 = power of 2
         a[0...n1-1][0...n2-1][0...n3-1]
                :input/output data (double ***)
-                <case1>
+                case1:
                     output data
                         a[k1][k2][2*k3] = R[k1][k2][k3]
                                         = R[(n1-k1)%n1][(n2-k2)%n2][n3-k3], 
@@ -185,7 +188,7 @@ macro definitions
                         a[n1/2][0][1] = R[n1/2][0][n3/2], 
                         a[n1/2][n2/2][0] = R[n1/2][n2/2][0], 
                         a[n1/2][n2/2][1] = R[n1/2][n2/2][n3/2]
-                <case2>
+                case2:
                     input data
                         a[j1][j2][2*j3] = R[j1][j2][j3]
                                         = R[(n1-j1)%n1][(n2-j2)%n2][n3-j3], 
@@ -269,14 +272,14 @@ macro definitions
 
 -------- DCT (Discrete Cosine Transform) / Inverse of DCT --------
     [definition]
-        <case1> IDCT (excluding scale)
+        case1: IDCT (excluding scale)
             C[k1][k2][k3] = sum_j1=0^n1-1 sum_j2=0^n2-1 sum_j3=0^n3-1
                                 a[j1][j2][j3] * 
                                 cos(pi*j1*(k1+1/2)/n1) * 
                                 cos(pi*j2*(k2+1/2)/n2) * 
                                 cos(pi*j3*(k3+1/2)/n3), 
                                 0<=k1<n1, 0<=k2<n2, 0<=k3<n3
-        <case2> DCT
+        case2: DCT
             C[k1][k2][k3] = sum_j1=0^n1-1 sum_j2=0^n2-1 sum_j3=0^n3-1
                                 a[j1][j2][j3] * 
                                 cos(pi*(j1+1/2)*k1/n1) * 
@@ -284,10 +287,10 @@ macro definitions
                                 cos(pi*(j3+1/2)*k3/n3), 
                                 0<=k1<n1, 0<=k2<n2, 0<=k3<n3
     [usage]
-        <case1>
+        case1:
             ip[0] = 0; // first time only
             ddct3d(n1, n2, n3, 1, a, t, ip, w);
-        <case2>
+        case2:
             ip[0] = 0; // first time only
             ddct3d(n1, n2, n3, -1, a, t, ip, w);
     [parameters]
@@ -347,14 +350,14 @@ macro definitions
 
 -------- DST (Discrete Sine Transform) / Inverse of DST --------
     [definition]
-        <case1> IDST (excluding scale)
+        case1: IDST (excluding scale)
             S[k1][k2][k3] = sum_j1=1^n1 sum_j2=1^n2 sum_j3=1^n3
                                 A[j1][j2][j3] * 
                                 sin(pi*j1*(k1+1/2)/n1) * 
                                 sin(pi*j2*(k2+1/2)/n2) * 
                                 sin(pi*j3*(k3+1/2)/n3), 
                                 0<=k1<n1, 0<=k2<n2, 0<=k3<n3
-        <case2> DST
+        case2: DST
             S[k1][k2][k3] = sum_j1=0^n1-1 sum_j2=0^n2-1 sum_j3=0^n3-1
                                 a[j1][j2][j3] * 
                                 sin(pi*(j1+1/2)*k1/n1) * 
@@ -362,10 +365,10 @@ macro definitions
                                 sin(pi*(j3+1/2)*k3/n3), 
                                 0<k1<=n1, 0<k2<=n2, 0<k3<=n3
     [usage]
-        <case1>
+        case1:
             ip[0] = 0; // first time only
             ddst3d(n1, n2, n3, 1, a, t, ip, w);
-        <case2>
+        case2:
             ip[0] = 0; // first time only
             ddst3d(n1, n2, n3, -1, a, t, ip, w);
     [parameters]
@@ -377,7 +380,7 @@ macro definitions
                 n3 >= 2, n3 = power of 2
         a[0...n1-1][0...n2-1][0...n3-1]
                :input/output data (double ***)
-                <case1>
+                case1:
                     input data
                         a[j1%n1][j2%n2][j3%n3] = A[j1][j2][j3], 
                             0<j1<=n1, 0<j2<=n2, 0<j3<=n3, 
@@ -385,7 +388,7 @@ macro definitions
                     output data
                         a[k1][k2][k3] = S[k1][k2][k3], 
                             0<=k1<n1, 0<=k2<n2, 0<=k3<n3
-                <case2>
+                case2:
                     output data
                         a[k1%n1][k2%n2][k3%n3] = S[k1][k2][k3], 
                             0<k1<=n1, 0<k2<=n2, 0<k3<=n3
@@ -429,7 +432,6 @@ macro definitions
                     }
                 }
             }
-        .
 */
 
 

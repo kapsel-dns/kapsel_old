@@ -1,6 +1,11 @@
-//
-// $Id: sp_3d_ns.h,v 1.9 2006/11/30 14:25:44 nakayama Exp $
-//
+/*!
+  \file sp_3d_ns.h
+  \author Y. Nakayama
+  \date 2006/11/30
+  \version 1.9
+  \brief Main program file (header)
+  \todo documentation
+ */
 #ifndef SP_3D_NS_H
 #define SP_3D_NS_H
 
@@ -12,6 +17,7 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
+#include <time.h>
 #include "macro.h"
 #include "input.h"
 #include "variable.h"
@@ -27,6 +33,7 @@
 #include "init_particle.h"
 #include "operate_omega.h"
 #include "operate_electrolyte.h"
+#include "operate_surface.h"
 
 enum Count_SW {INIT, ADD, MEAN, SNAP_MEAN, SHOW};
 

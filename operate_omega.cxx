@@ -1,6 +1,11 @@
-//
-// $Id: operate_omega.cxx,v 1.1 2006/06/27 18:41:28 nakayama Exp $
-//
+/*!
+  \file operate_omega.cxx
+  \author Y. Nakayama
+  \date 2006/06/27
+  \version 1.1
+  \brief High-level routines to handle basic operations on velocity field
+  \see \ref page_design_fsolver section of manual for further details
+ */
 
 #include "operate_omega.h"
 

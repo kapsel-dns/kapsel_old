@@ -1,3 +1,14 @@
 kapsel
+udf2xyz
 *.o
+*.el
+*.tex
+*.aux
+*.log
+*.gz
+*.pdf
+*.orig
+Doxygen/html
+Doxygen/latex
+
 

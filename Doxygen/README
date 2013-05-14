@@ -1,0 +1,26 @@
+To generate the KAPSEL guide you will need
+
+- doxygen: source code documentaton system
+  @http://www.stack.nl/~dimitri/doxygen/
+
+- latex or pdflatex: a type-setting system
+  @http://ctan.org/
+  If you don't have pdflatex unset the pdflatex flag in Doxyfile.in
+     USE_PDFLATEX = NO
+
+- graphviz dot tool: tool to generate directed graphs [optional]
+  @http://www.graphviz.org/
+  If you don't have the dot tool unset the dot flag in Doxyfile.in
+     HAVE_DOT = NO
+
+When ready, simply type
+$ Doxygen Doxyfile.in
+...this will take a while...
+You should have two new directories for the html and latex documentations
+
+1. html guide : 
+   $    open html/index.html
+2. latex guide:
+   $    cd latex
+   $    make
+   $    open refman.pdf

@@ -1,0 +1,72 @@
+/*!
+\author J. Molina
+\date 2013/01/21
+\page page_design_swimmer Self-Propelled Swimmers
+\see Squirmer_coord, operate_surface.cxx
+\htmlonly
+<p><div class="image">
+   <img src="../images/squirmer.jpg" title="squirmer.jpg" width="30%" height="auto"/>
+   <div class="caption"> Spherical coordinates at the surface of the squirming body </div>
+</div></p>
+\endhtmlonly
+
+Our model of self-propelled swimmers is that of Blakes' squirmers, which are spherical bodies with a specified surface-tangential slip velocity at the particle-fluid interface. To second order, the slip profile is given by
+\f[
+\vec{u}^s(\hat{\vec{r}}) = B_1\left(\sin\theta + \frac{\alpha}{2}\sin{2\theta}\right)\hat{\vec{\theta}}                         
+\f]
+which depends only on the polar angle with resepect to the preferred direction of motion (each particle carries with it a fixed coordinate system, which rotates with the body). The polar coordinates, and unit vectors, for a point on the surface of the particle can be easily obtained from
+\f{align*}{
+\hat{\vec{r}} &= \vec{r} / \sqrt{\hat{\vec{r}}\cdot\hat{\vec{r}}} \\
+\hat{\vec{\phi}} &= \hat{\vec{e}}_3\times\hat{\vec{r}}/\sin\theta\\
+\hat{\vec{\theta}} &= \hat{\vec{\phi}}\times\hat{\vec{r}}
+\f}
+which obey the following two relations
+\f{align*}{
+\hat{\vec{e}}\cdot\hat{\vec{r}} &= \cos{\theta} \\
+\hat{\vec{e}}\cdot\hat{\vec{r}}\,\hat{\vec{r}} - \hat{\vec{e}} &= \sin{\theta}\,\hat{\vec{\theta}}        
+\f}
+where \f$\hat{\vec{e}}=\hat{\vec{e}}_3\f$ is the particles preferred swimming direction. 
+
+After the velocity field has been solved for the advection and hydrodynamic viscous stress terms, we need to enforce the appropriate slip velocity at the surface
+\f{align*}{
+u^{**} &= u^{*} + \sum_{i=1}^N\varphi_i\left(\vec{V}^\prime_i + \vec{\Omega}^\prime_i\times\vec{r}_i + \vec{u}^s_i - \vec{u}^*\right) \\
+       &\qquad +\sum_{i=1}^N\phi_i\left(\delta\vec{V}_i + \delta\vec{\Omega}_i\times\vec{r}_i\right) \\
+\nabla\cdot u^{**} &= 0       
+\f}
+the second term on the rhs enforces the slip condition (with respect to the primed velocities), while the third term (corresponding to a counter-flow contribution within the particle domain) is needed to ensure momentum conservation. We define the surface profile function such that it is non-zero only within the interface domain
+\f[
+\varphi = (1-\phi) \frac{\abs{\nabla\phi}}{\max{\abs{\nabla\phi}}}
+\f]
+Momentum conservation requires that
+\f{align*}{
+\int\vdf{x}\phi_i\left(\delta\vec{V}_i + \delta\vec{\Omega}_i\times\vec{r}_i\right) &=
+ -\int\vdf{x}\varphi_i\left(\vec{V}^\prime_i + \vec{\Omega}^\prime_i\times\vec{r}_i + \vec{u}^s_i - \vec{u}^*\right)\\
+\int\vdf{x}\phi_i\vec{r}_i\times\left(\delta\vec{V}_i + \delta\vec{\Omega}_i\times\vec{r}_i\right) &= - \int\vdf{x}\varphi_i\vec{r}_i\times\left(\vec{V}^\prime_i + \vec{\Omega}^\prime_i\times\vec{r}_i + \vec{u}^s_i - \vec{u}^*\right)
+\f}
+which can be recast in the simpler form
+\f{align*}{
+M_i^{(0)} \delta\vec{V}_i + \delta\vec{\Omega}_i\times\vec{M}^{(1)}_i &= - S_i^{(0)}\vec{V}^\prime_i - \vec{\Omega}^\prime_i\times\vec{S}^{(1)}_i -\Delta\vec{v}_i \equiv \delta\vec{P}\\
+\vec{M}^{(1)}_i\times\delta\vec{V}_i + \vec{M}^{(2)}_i\cdot\delta\vec{\Omega}_i &= 
+- \vec{S}^{(1)}_i\times\vec{V}^\prime_i - \vec{S}^{(2)}_i\cdot\vec{\Omega}^\prime_i - \Delta\vec{w}_i \equiv \delta\vec{L}
+\f}
+where the \f$M^{(j)}\f$ are simple geometric factors related to the total mass, center of mass, and moment of inertia of the particles (the \f$S^{(j)}\f$ factors give the corresponding quantities for the surface fluid, all that is required is to change \f$\phi\f$ to \f$\varphi\f$)
+\f{align*}{
+M_i^{(0)} &= \int\vdf{x}\phi_i \approx M / \rho\\
+\vec{M}_i^{(1)} &= \int\vdf{x}\phi_i\vec{r}_i \approx 0\\
+\vec{M}_i^{(2)} &= \int\vdf{x}\phi_i\left(r_i^2\tensor{I} - \vec{r}\vec{r}\right) \approx \frac{2}{5}M a^2 \tensor{I}/\rho
+\f}
+and
+\f{align*}{
+\Delta\vec{v}_i &= \int\vdf{x}\varphi_i\left(\vec{u}^s_i - \vec{u}^*\right) \\
+\Delta\vec{w}_i &= \int\vdf{x}\varphi_i \vec{r}_i\times\left(\vec{u}^s_i - \vec{u}^*\right)
+\f}
+
+Finally, the counter-flow velocities can be obtained in terms of the primed velocities (used to enforce the slip) as
+\f{align*}{
+\delta\vec{V}_i &= \left(\delta\vec{P} - \delta\vec{\Omega}_i\times\vec{M}^{(1)}_i\right) / M^{(0)}_i \\
+\delta\vec{\Omega}_i &= \fancy{M}^{-1}_i\cdot\left[M_i^{(0)} \delta\vec{L} - \vec{M}^{(1)}_i\times\delta\vec{P}\right]
+\f}
+\f[
+\fancy{M}_i = M^{(0)}_i \vec{M}^{(2)}_i - \norm{\vec{M}^{(1)}_i}\tensor{I} + \vec{M}^{(1)}_i\vec{M}^{(1)}_i
+\f]
+*/

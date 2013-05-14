@@ -1,6 +1,10 @@
-//
-// $Id: parameter_define.h,v 1.1 2006/06/27 18:41:28 nakayama Exp $
-//
+/*!
+  \file parameter_define.h
+  \brief Define global system parameters for FFT routines
+  \author Y. Nakayama
+  \date 2006/06/27
+  \version 1.1
+ */
 #ifndef PARAMETER_DEFINE_H_
 #define PARAMETER_DEFINE_H_
 

@@ -1,6 +1,10 @@
-//
-// $Id: md_force.h,v 1.1 2006/06/27 18:41:28 nakayama Exp $
-//
+/*!
+  \file md_force.h
+  \brief Routines to compute MD forces on particles (header file)
+  \author Y. Nakayama
+  \date 2006/06/27
+  \version 1.1
+ */
 #ifndef MD_FORCE_H
 #define MD_FORCE_H
 
@@ -21,8 +25,40 @@ enum Particle_BC {
 };
 
 void Add_f_gravity(Particle *p);
-void Calc_f_hydro_correct_precision(Particle *p, double **fp, const CTime &jikan);
-void Calc_f_hydro_correct_precision_OBL(Particle *p, double **fp, const CTime &jikan);
+
+/*!
+  \brief Compute slip constribution to the hydrodynamic force
+  \details \f{align*}{
+  \left[\int\df{s}\vec{F}_i^{sq}\right] &= 
+  \int\vdf{x}\rho\phi_i\left(\vec{u}^{**} - \vec{u}^{*}\right) \\
+  \left[\int\df{s}\vec{N}_i^{sq}\right] &= 
+  \int\vdf{x}\rho\phi_i\vec{r}_i\times\left(\vec{u}^{**} - \vec{u}^{*}\right)
+  \f}
+  \param[in,out] p particle data
+  \param[in] u change in fluid velocity field due to slip profile at interfaces
+  \param[in] jikan time data
+ */
+void Calc_f_slip_correct_precision(Particle *p, double const* const* u, const CTime &jikan);
+
+/*!
+  \brief Compute hydrodynamic force/torque acting on particles
+  \details \f{align*}{
+  \left[\int\df{s}\vec{F}_i^H\right] &=  -
+  \int\vdf{x}\rho\phi_i\left(\vec{u}_p^n - \vec{u}^{*}\right) \\
+  \left[\int\df{s}\vec{N}_i^H\right] &= -
+  \int\vdf{x}\rho\phi_i\vec{r}_i\times\left(\vec{u}_p^n - \vec{u}^{*}\right)
+  \f}
+  \param[in,out] p particle data
+  \param[in] u current fluid velocity field
+  \param[in] jikan time data
+ */
+void Calc_f_hydro_correct_precision(Particle *p, double const* const* u, const CTime &jikan);
+
+/*!
+  \brief Compute hydrodynamic force acting on particles in a system with oblique coordinates (Lees-Edwards PBC)
+ */
+void Calc_f_hydro_correct_precision_OBL(Particle *p, double const* const* u, const CTime &jikan);
+
 double Calc_f_Lennard_Jones_shear_cap_primitive_lnk(Particle *p
 				       ,void (*distance0_func)(const double *x1,const double *x2,double &r12,double *x12)
 				      ,const double cap

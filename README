@@ -7,10 +7,20 @@ How to use kapsel:
 Contents
 --------
 *.h/c/cxx:      source code
+
 udf/            udf define and sample input file
+
+Doxygen/        doxygen documentation
+
+Tools/          
+  udf2xyz.cxx           extract particle from udf format to xyz-type file
+  helixudf_generator/   python script to generate helix coordinates
+
+
 
 KAPSEL History:
 --------
+v3.0 - Apr 2013
 v2.1 - Mar 2011
 v2.0 - Aug 2009
 v1.0 - May 2006

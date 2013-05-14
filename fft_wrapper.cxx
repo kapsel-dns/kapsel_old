@@ -1,6 +1,10 @@
-//
-// $Id: fft_wrapper.cxx,v 1.1 2006/06/27 18:41:28 nakayama Exp $
-//
+/*!
+  \file fft_wrapper.cxx
+  \author Y. Nakayama
+  \date 2006/06/27
+  \version 1.1
+  \brief FFT wrapper routines for reciprocal space calculations 
+ */
 
 #include "fft_wrapper.h"
 
@@ -164,8 +168,15 @@ void Omega_k2zeta_k(double **omega, double **zetak){
     }
   }
 }
+/*!
+  \warning If FIX_CELL is not set, the zero wave-number component is
+  allowed to be non-null. Usefull for fixed-particle calculations
+ */
+ if(FIX_CELL){
   assert(zetak[0][0] == 0.0); 
   assert(zetak[1][0] == 0.0); 
+}
+
 }
 
 void Omega_k2zeta_k_OBL(double **omega, double **zetak){
@@ -275,24 +286,21 @@ void U_k2zeta_k(double **u, double **zeta, double uk_dc[DIM]){
 			 - ks[2] * u[1][im+1]);
 		    omega_im[0] = 
 			-(ks[1] * u[2][im] 
-			  - ks[2] * u[1][im]
-			    );
+			  - ks[2] * u[1][im]);
 		    
 		    omega_re[1] = 
 			(ks[2] * u[0][im+1] 
 			 - ks[0] * u[2][im+1]);
 		    omega_im[1] = 
 			-(ks[2] * u[0][im] 
-			  - ks[0] * u[2][im]
-			    );
+			  - ks[0] * u[2][im]);
 		    
 		    omega_re[2] = 
 			(ks[0] * u[1][im+1] 
 			 - ks[1] * u[0][im+1]);
 		    omega_im[2] = 
 			-(ks[0] * u[1][im] 
-			  - ks[1] * u[0][im]
-			    );
+			  - ks[1] * u[0][im]);
 		    
 		    if(KX_int[im] != 0){
 			zeta[0][im] = omega_re[1];
@@ -655,7 +663,6 @@ void U_k2divergence_k(double **u, double *div){
     for(int j=0; j<NY; j++){
       for(int k=0; k<HNZ_; k++){
 	k2=2*k;
-	ks[DIM];
 	im0=(i*NY*NZ_)+(j*NZ_)+k2;
 	im1=im0+1;
 
@@ -686,7 +693,7 @@ void U_k2rotation_k(double **u){
     int k2;
     int im;
     {
-#pragma omp parallel for schedule(dynamic, 1) private(ks, dmy_rot_re, dmy_rot_im, k2, im)
+#pragma omp parallel for schedule(dynamic, 1) private(ks, dmy_u_re, dmy_u_im, dmy_rot_re, dmy_rot_im, k2, im)
 	for(int i = 0; i < NX; i++){
 	    for(int j = 0; j < NY; j++){
 		for(int k = 0; k < HNZ_; k++){

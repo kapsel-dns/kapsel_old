@@ -1,15 +1,17 @@
-//
-// $Id: make_phi.cxx,v 1.3 2006/10/20 00:24:36 iwashita Exp $
-//
+/*!
+  \file make_phi.cxx
+  \brief Routines to compute smooth profile and grid particle properties
+  \author T. Iwashita
+  \date 2006/10/20
+  \version 1.3
+ */
 
 #include "make_phi.h"
 
 void (*Angular2v)(const double *omega, const double *r, double *v);
 
 int NP_domain;
-int NP_domain_interface;
 int **Sekibun_cell;
-int **Sekibun_cell_interface;
 
 /////////////
 void Make_surface_normal(double **surface_normal
@@ -27,7 +29,7 @@ void Make_surface_normal(double **surface_normal
     double r[DIM];
     double dmy_r;
     double dmy;
-	double ir;
+    double ir;
 #pragma omp parallel for schedule(dynamic, 1) private(xp,x_int,residue,sw_in_cell,r_mesh,r,dmy_r,dmy,ir)
   for(int n=0; n < Particle_Number; n++){
     for(int d=0;d<DIM;d++){
@@ -73,7 +75,6 @@ inline void Make_rho_field_primitive(double *phi
     double x[DIM];
     double dmy;
     double dmy_phi;
-    int im;
 #pragma omp parallel for schedule(dynamic, 1) private(drho,xp,x_int,residue,sw_in_cell,r_mesh,r,x,dmy,dmy_phi)
     for(int n=0; n < Particle_Number; n++){
 	drho = RHO_particle[p[n].spec] - RHO;
@@ -95,6 +96,8 @@ inline void Make_rho_field_primitive(double *phi
 	    phi[(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += dmy_phi;
 	}
     }
+
+    int im;
 #pragma omp parallel for schedule(dynamic, 1) private(im)
     for(int i=0;i<Nlattice[0];i++){
 	for(int j=0;j<Nlattice[1];j++){
@@ -112,6 +115,109 @@ void Make_rho_field(double *phi
   nlattice = Ns;
   Make_rho_field_primitive(phi, p, DX, NP_domain,Sekibun_cell,nlattice);
 }
+
+//
+inline double janus_geometry(const Particle &p, const double normal[DIM]){
+  double body_normal[DIM];
+  double cos_theta;
+
+  rigid_body_rotation(body_normal, normal, p.q, SPACE2BODY);
+  if(janus_axis[p.spec] == x_axis){
+    cos_theta = body_normal[0];
+  }else if(janus_axis[p.spec] == y_axis){
+    cos_theta = body_normal[1];
+  }else if(janus_axis[p.spec] == z_axis){
+    cos_theta = body_normal[2];
+  }
+  else if(janus_axis[p.spec] == no_axis){
+    cos_theta = 1.0;
+  }else{
+    fprintf(stderr, "Error: %d not a janus particle\n", p.spec);
+    exit_job(EXIT_FAILURE);
+  }
+
+  return ((cos_theta >= 0.0) ? 1.0 : -1.0);
+}
+
+void Make_phi_janus_particle(double *phi, double *id_phi, Particle *p){
+  double xp[DIM], residue[DIM], r[DIM];
+  double dmy_r;
+  int x_int[DIM], r_mesh[DIM];
+  int *nlattice;
+  int im, sw_in_cell;
+  nlattice = Ns;
+
+  //Reset janus labels for grid points
+  Reset_phi(id_phi, -1.0);
+
+  for(int n = 0; n < Particle_Number; n++){
+    
+    for(int d = 0; d < DIM; d++){
+      xp[d] = p[n].x[d];
+    }
+    
+    sw_in_cell = Particle_cell(xp, DX, x_int, residue);
+    sw_in_cell = 1;
+    
+    for(int mesh = 0; mesh < NP_domain; mesh++){
+      Relative_coord(Sekibun_cell[mesh], x_int, residue, sw_in_cell,
+		     nlattice, DX, r_mesh, r);
+      dmy_r = sqrt(SQ(r[0]) + SQ(r[1]) + SQ(r[2]));
+      for(int d = 0; d < DIM; d++){
+	r[d] /= dmy_r;
+      }
+      im = (r_mesh[0] * NY * NZ_) + (r_mesh[1] * NZ_) + r_mesh[2];
+      
+      //New mesh point or closer particle
+      if(id_phi[im] < 0 || dmy_r < id_phi[im]){
+	phi[im] = janus_geometry(p[n], r) * ABS(phi[im]);
+	id_phi[im] = dmy_r;
+      }
+      
+    }//mesh
+  }//Particle Number
+}
+
+void Make_phi_janus_particle_OBL(double *phi, double *id_phi, Particle *p){
+  double xp[DIM], residue[DIM], r[DIM], x[DIM];
+  double dmy_r;
+  int x_int[DIM], r_mesh[DIM];
+  int *nlattice;
+  int im, sign, sw_in_cell;
+  nlattice = Ns;
+
+  // Reset janus labels for grid points
+  Reset_phi(id_phi, -1.0);
+
+  for(int n = 0; n < Particle_Number; n++){
+    for(int d = 0; d < DIM; d++){
+      xp[d] = p[n].x[d];
+    }
+    
+    sw_in_cell = Particle_cell(xp, DX, x_int, residue);
+    sw_in_cell = 1;
+    
+    for(int mesh = 0; mesh < NP_domain; mesh++){
+      sign = Relative_coord_check_stepover_Y(Sekibun_cell[mesh], x_int, 
+					     residue, sw_in_cell, nlattice, 
+					     DX, r_mesh, r);
+      dmy_r = sqrt(SQ(r[0]) + SQ(r[1]) + SQ(r[2]));
+      for(int d = 0; d < DIM; d++){
+	r[d] /= dmy_r;
+      }
+      im = (r_mesh[0] * NY * NZ_) + (r_mesh[1] * NZ_) + r_mesh[2];
+      
+      //New mesh point or closer particle
+      if(id_phi[im] < 0 || dmy_r < id_phi[im]){
+	phi[im] = janus_geometry(p[n], r) * ABS(phi[im]);
+	id_phi[im] = dmy_r;
+      }
+      
+    }//mesh
+  }//Particle Number
+}
+
+
 inline void Make_phi_u_primitive(double *phi
 				 ,double **up
 				 ,Particle *p
@@ -133,7 +239,10 @@ inline void Make_phi_u_primitive(double *phi
     double dmy;
     double dmy_phi;
     double v_rot[DIM];
-#pragma omp parallel for schedule(dynamic, 1) private(xp,vp,omega_p,x_int,residue,sw_in_cell,r_mesh,r,x,dmy,dmy_phi,v_rot)
+    int im;
+
+#pragma omp parallel for schedule(dynamic, 1) \
+  private(xp,vp,omega_p,x_int,residue,sw_in_cell,r_mesh,r,x,dmy,dmy_phi,v_rot,im)
     for(int n=0; n < Particle_Number; n++){
 	for(int d=0;d<DIM;d++){
 	    xp[d] = p[n].x[d];
@@ -155,23 +264,20 @@ inline void Make_phi_u_primitive(double *phi
 	    dmy = Distance(x, xp);
 	    //dmy = sqrt(dmy);
 	    dmy_phi= Phi(dmy,radius);
-	    phi[(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += dmy_phi;
+	    im = (r_mesh[0] * NY * NZ_) + (r_mesh[1] * NZ_) + r_mesh[2]; 
+	    phi[im] += dmy_phi;
 	    
 	    if(SW_UP){
 		Angular2v(omega_p, r, v_rot);
 		for(int d=0;d<DIM;d++){
-		    up[d][(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += 
-			( (vp[d]+v_rot[d]) * dmy_phi);
+		    up[d][im] += ( (vp[d]+v_rot[d]) * dmy_phi);
 		}
 	    }
 	}
-	p[n].eff_mass_ratio 
-	    = 1.0;
     }
-    
+
     // koba code //
     if(SW_UP){
-	int im;
 	double idmy_phi;
 #pragma omp parallel for schedule(dynamic, 1) private(im,idmy_phi)
 	for (int i = 0; i < NX; i++) {
@@ -212,7 +318,8 @@ inline void Make_phi_u_primitive_OBL(double *phi
     double dmy_phi;
     double v_rot[DIM];
     int sign;
-#pragma omp parallel for schedule(dynamic, 1) private(xp,vp,omega_p,x_int,residue,sw_in_cell,r_mesh,r,x,dmy,dmy_phi,v_rot,sign)
+    int im;
+#pragma omp parallel for schedule(dynamic, 1) private(xp,vp,omega_p,x_int,residue,sw_in_cell,r_mesh,r,x,dmy,dmy_phi,v_rot,sign,im)
     for(int n=0; n < Particle_Number; n++){
 	for(int d=0;d<DIM;d++){
 	    xp[d] = p[n].x[d];
@@ -241,28 +348,24 @@ inline void Make_phi_u_primitive_OBL(double *phi
 	    dmy = sqrt(dmy);
 
 	    dmy_phi= Phi(dmy,radius);
-	    phi[(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += dmy_phi;
+	    im = (r_mesh[0] * NY * NZ_) + (r_mesh[1] * NZ_) + r_mesh[2];
+	    phi[im] += dmy_phi;
 	    
 	    if(SW_UP){
 		Angular2v(omega_p, r, v_rot);
 		for(int d=0;d<DIM;d++){
 		    if (!(d == 0)) {
-			up[d][(r_mesh[0]*NY*NZ_) + (r_mesh[1]*NZ_) + r_mesh[2]] += 
-			    (vp[d] + v_rot[d])*dmy_phi;
+			up[d][im] += (vp[d] + v_rot[d])*dmy_phi;
 		    } else {
-			up[0][(r_mesh[0]*NY*NZ_) + (r_mesh[1]*NZ_) + r_mesh[2]] +=
-			    ( (vp[d] - sign*Shear_rate_eff*L_particle[1] + v_rot[d])*dmy_phi);
+			up[0][im] += ( (vp[d] - sign*Shear_rate_eff*L_particle[1] + v_rot[d])*dmy_phi);
 		    }
 		}
 	    }
 	}
-	p[n].eff_mass_ratio 
-	    = 1.0;
     }
     
     // koba code //
     if(SW_UP){
-	int im;
 	double idmy_phi;
 #pragma omp parallel for schedule(dynamic, 1) private(im,idmy_phi)
 	for (int i = 0; i < NX; i++) {
@@ -281,6 +384,7 @@ inline void Make_phi_u_primitive_OBL(double *phi
 	}
     }
 }
+
 void Make_phi_particle(double *phi
 		       ,Particle *p
 		       ,const double radius
@@ -372,7 +476,5 @@ void Make_phi_u_advection(double *phi, double **up, Particle *p){
 	up[d][(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += ( vp[d] * dmy_phi);
       }
     }
-    p[n].eff_mass_ratio 
-      = 1.0;
   }
 }

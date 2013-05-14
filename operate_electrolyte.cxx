@@ -1,6 +1,10 @@
-//
-// $Id: operate_electrolyte.cxx,v 1.1 2006/06/27 18:41:28 nakayama Exp $
-//
+/*!
+  \file operate_electrolyte.cxx
+  \author Y. Nakayama
+  \date 2006/06/27
+  \version 1.1
+  \brief Routines to compute the charge distributions and forces
+ */
 #include "operate_electrolyte.h"
 
 double Bjerrum_length;
@@ -17,7 +21,7 @@ inline void Add_external_electric_field_x(double *potential
     external[d] = E_ext[d];
     if(AC){
       double time = jikan.time;
-      external[d] = sin( Angular_Frequency * time);
+      external[d] *= sin( Angular_Frequency * time);
     }
   }
 
@@ -120,7 +124,7 @@ void Make_Coulomb_force_x_on_fluid(double **force
     external[d] = E_ext[d];
     if(AC){
       double time = jikan.time;
-      external[d] = sin( Angular_Frequency * time);
+      external[d] *= sin( Angular_Frequency * time);
     }
   }
   int im;
@@ -470,7 +474,7 @@ inline void Set_Poisson_Boltzmann_ion_charge_density_nosalt(double **Concentrati
     A_k2a(e_potential);
     
     double rho_0 = 0.;
- 	double dmy_phi;
+    double dmy_phi;
 #pragma omp parallel for schedule(dynamic, 1) reduction(+:rho_0) private(dmy_phi)
     for(int i=0;i<NX;i++){
       for(int j=0;j<NY;j++){

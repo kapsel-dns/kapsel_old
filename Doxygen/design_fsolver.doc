@@ -1,0 +1,109 @@
+/*!
+\author J. Molina
+\date 2012/04/9
+\page page_design_fsolver Fluid Solver
+
+\section sec_design_fsolver_basic Basic Equations
+To begin, we consider the simple case of a monodisperse system of sperical particles dispersed in a fluid. Using the smooth profile function \f$\phi_i\f$ for each particle, we can define a continuum velocity field for the total system (fluid + particle). The Navier-Stokes equation for this total velocity (under the incompressibility condition) can be expressed as
+\f{equation}{\label{e:ns}
+ \pd{\vec{u}}{t} = - \nabla\cdot\left(\vec{u}\vec{u}\right) - \frac{1}{\rho} \nabla p + \nu \nabla^2\vec{u}
+\f}
+where \f$\rho\f$ is the fluid density and \f$\nu=\eta/\rho\f$ the fluid kinematic viscocity.
+It is more convenient, however, to work in the vorticity representation \f$\vec{w} = \nabla\times \vec{u}\f$
+\f{eqnarray*}{
+\pd{\vec{w}}{t} &=& -\nabla\times\nabla\cdot\left(\vec{u}\vec{u}\right) + \nu\nabla\times\nabla^2\vec{u} \\
+		&=& -\vec{\Omega} + \nu\nabla^2\vec{w}
+\f}
+where we have defined \f$\vec{\Omega}\f$ as the curl of the advection term
+\f$
+\vec{\Omega} = \nabla\times\nabla\cdot\left(\vec{u}\vec{u}\right).
+\f$ 
+Taking the 3D Fourier Transform of this last equation gives
+\f{equation}{\label{e:ns_w}
+\pd{\ft{\vec{w}}}{t} = - \ft{\vec{\Omega}} + (-2\pi i)^2\nu k^2 \ft{\vec{w}}
+\f}
+
+\subsection ssec_fsolver_basic_reducedv Reduced vorticity
+Equation \f$(2)\f$ can be reduced if one realizes that the three components of \f$\vec{w}\f$ are not linearly independent, since
+\f{eqnarray*}{
+  \ft{w}_1 &=& (-2\pi i)\left(k_2 \ft{u}_3 - k_3\ft{u}_2\right) \\
+  \ft{w}_2 &=& (-2\pi i)\left(k_3 \ft{u}_1 - k_1\ft{u}_3\right) \\
+  \ft{w}_3 &=& (-2\pi i)\left(k_1 \ft{u}_2 - k_2\ft{u}_1\right)
+\f}
+we need only consider the reduced field \f$\ft{\vec{\zeta}} = \ft{\vec{\omega}}^* = (\ft{\omega}_i, \ft{\omega}_j)\f$, where \f$\ft{\omega}_i\f$ and \f$\ft{\omega}_j\f$ are two linearly independent components of \f$\ft{\vec{\omega}}\f$
+\f[
+\ft{\vec{\omega}}:\mathbb{R}^3 \overset{(*)}{\longrightarrow} \ft{\vec{\zeta}}:\mathbb{R}^2
+\f]
+
+We adopt the following convention 
+<OL>
+  <LI>\f$k_x\ne 0:\f$<BR>
+  \f[
+	\ft{\vec{\zeta}} = (\ft{w}_2, \ft{w}_3)\qquad\qquad
+	\ft{w}_1 = \frac{-1}{k_1}\left(k_3 \ft{\zeta}_2 + k_2\ft{\zeta}_1\right)
+  \f]
+  </LI>
+  <LI>\f$k_1= 0, k_2\ne 0:\f$<BR>
+  \f[
+	\ft{\vec{\zeta}} = (\ft{w}_3, \ft{w}_1)\qquad\qquad\qquad\qquad\quad
+	\ft{w}_2 = -\frac{k_3}{k_2}\ft{\zeta}_1
+  \f]
+  </LI>
+  <LI>\f$k_1=k_2=0, k_3\ne0:\f$<BR>
+  \f[
+	\ft{\vec{\zeta}} = (\ft{w}_1, \ft{w}_2)\qquad\qquad\qquad\qquad\qquad\quad
+	\ft{w}_3 = 0
+  \f]
+  </LI>
+
+To recover the velocity field \f$\ft{\vec{u}}\f$ from \f$\ft{\vec{w}}\f$ we use the incompressibility (solenoidal) condition \f$\vec{k}\cdot\ft{\vec{u}} = 0\f$ to obtain
+
+\f{eqnarray*}{
+  \left(-2\pi i\right)\ft{u}_1 &=& \frac{k_3 \ft{w}_2 - k_2\ft{w}_3}{\norm{k}} \\
+  \left(-2\pi i\right)\ft{u}_2 &=& \frac{k_1 \ft{w}_3 - k_3\ft{w}_1}{\norm{k}} \\
+  \left(-2\pi i\right)\ft{u}_3 &=& \frac{k_2 \ft{w}_1 - k_1\ft{w}_2}{\norm{k}}
+\f}
+</OL>
+Notice that the special case \f$\ft{u}(\vec{k}=0)\f$ needs to be considered separately. 
+
+\subsection ssec_fsolver_basic_reduceda Reduced advection
+To compute the advection term \f$\vec{\Omega}\f$, let \f$\tensor{U}_{ij}=u_iu_j\f$ denote the components of the dyadic product \f$\vec{u}\vec{u}\f$, we thus have
+\f[
+  \Omega_i = \epsilon_{ijk} \pd{}{x_j}\left[\pd{}{x_l}\tensor{U}_{lk}\right]
+\f]
+where \f$\epsilon_{ijk}\f$ denotes the Levi-Civita symbol, and where the Einstein summation convention is implied. Taking the Fourier transform gives
+\f[
+  \ft{\Omega}_i = (-2\pi i)^2\epsilon_{ijk}k_j k_l \ft{\tensor{U}}_{lk}
+\f]
+which can be written explicitly for each component as
+\f{eqnarray*}{
+  \ft{\Omega}_1 &=& -(2\pi i)^2\left[k_2k_3\left(\ft{\tensor{U}}_{22} - \ft{\tensor{U}}_{33}\right)
+   + (k_3^2 - k_2^2)\ft{\tensor{U}}_{32} + k_1k_3\ft{\tensor{U}}_{12} - k_1k_2\ft{\tensor{U}}_{13}\right]\\
+  \ft{\Omega}_2 &=& -(2\pi i)^2\left[k_1k_3\left(\ft{\tensor{U}}_{33} - \ft{\tensor{U}}_{11}\right) + (k_1^2 - k_3^2)\ft{\tensor{U}}_{13} + k_1k_2\ft{\tensor{U}}_{23} -
+  k_2k_3\ft{\tensor{U}}_{12}\right]\\
+  \ft{\Omega}_3 &=& -(2\pi i)^2\left[k_1k_2\left(\ft{\tensor{U}}_{11} - 
+  \ft{\tensor{U}}_{22}\right) + (k_2^2 - k_1^2)\ft{\tensor{U}}_{12} + k_2k_3\ft{\tensor{U}}_{13} - k_1k_3\ft{\tensor{U}}_{23}\right]
+\f}
+The transformation used to obtained the reduced advection field \f$\ft{\vec{\Omega}}\longrightarrow\ft{\vec{\Omega}}^*\f$ is the same one described above for the reduced vorticity field \f$\ft{\vec{\omega}}\longrightarrow\ft{\vec{\omega}}^*=\ft{\vec{\zeta}}\f$. 
+
+\subsection ssec_fsolver_basic_working Working equation
+The basic working equation we must solve can be written as
+\f{equation}{
+\pd{\ft{\vec{\zeta}}}{t} = -\ft{\vec{\Omega}}^* -\nu (2\pi k)^2\ft{\vec{\zeta}}
+\f}
+where we stress the fact that \f$\vec{\zeta}, \vec{\Omega}\f$ are 2D vectors. This equation can be solved analytically to give
+\f[
+  \ft{\vec{\zeta}}(t) = \ft{\vec{\zeta}}(0) e^{-\nu (2\pi k)^2 t} - 
+  \int_0^t \vec{\Omega}^*(s) e^{-\nu (2\pi k)^2(t-s)}\df{s}
+\f]
+where we have dropped the \f$\vec{k}\f$ dependence. Assuming the advection term is constant over an interval \f$h\f$, the field can be updated according to
+\f[
+  \ft{\vec{\zeta}}(t_n + h) = \ft{\vec{\zeta}}(t_n) + \left(e^{-\nu (2\pi k)^2 h} - 1\right)\left[\ft{\vec{\zeta}}(t_n) + \frac{\ft{\vec{\Omega}}(t_n)}{\nu(2\pi k)^2}\right]
+\f]
+
+\note The basic routines to transform among the various velocity field representations \f$(\vec{u}, \vec{\omega}, \vec{\zeta})\f$ are found in \ref operate_omega.h and \ref fft_wrapper.h
+
+\note In the code, \c omega refers to \f$\vec{\omega}\f$ and not \f$\vec{\Omega}\f$; \c u and \c zeta refer to \f$\vec{u}\f$ and \f$\vec{\zeta}\f$, respectively.
+
+\note The update of the reduced vorticity field \f$\ft{\vec{\zeta}}\f$ is implemented in \ref NS_solver_slavedEuler
+*/

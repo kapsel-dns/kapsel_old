@@ -1,6 +1,10 @@
-//
-// $Id: fluid_solver.cxx,v 1.2 2006/08/15 15:01:35 nakayama Exp $
-//
+/*!
+  \file fluid_solver.cxx
+  \author Y. Nakayama
+  \date 2006/08/15
+  \version 1.2
+  \brief Solver for Navier-Stokes equations 
+ */
 #include "fluid_solver.h"
 
 double *Pressure;
@@ -8,9 +12,6 @@ double **Shear_force;
 double **Shear_force_k;
 double **f_ns0;
 double **f_ns1;
-double **f_ns2;
-double **f_ns3;
-double **f_ns4;
 
 ////////// inline functions
 // Shear_Navier_Stokes
@@ -150,18 +151,12 @@ void Mem_alloc_NS_solver(void){
     Pressure = alloc_1d_double(NX*NY*NZ_);
     f_ns0 = (double **) malloc(sizeof (double *)*DIM-1);
     f_ns1 = (double **) malloc(sizeof (double *)*DIM-1);
-    f_ns2 = (double **) malloc(sizeof (double *)*DIM-1);
-    f_ns3 = (double **) malloc(sizeof (double *)*DIM-1);
-    f_ns4 = (double **) malloc(sizeof (double *)*DIM-1);
 
     Shear_force = (double **) malloc(sizeof (double *)*DIM);
     Shear_force_k = (double **) malloc(sizeof (double *)*DIM);
     for(int d=0;d<DIM-1;d++){
 	f_ns0[d] = alloc_1d_double(NX*NY*NZ_);
 	f_ns1[d] = alloc_1d_double(NX*NY*NZ_);
-	f_ns2[d] = alloc_1d_double(NX*NY*NZ_);
-	f_ns3[d] = alloc_1d_double(NX*NY*NZ_);
-	f_ns4[d] = alloc_1d_double(NX*NY*NZ_);
     }
     for(int d=0;d<DIM;d++){
 	Shear_force[d] = alloc_1d_double(NX*NY*NZ_);
@@ -173,44 +168,13 @@ void Mem_alloc_NS_solver(void){
 ////
 inline void Rhs_solvent(double **u_solvent
 			,double **rhs_solvent
-			 ,double **grad_potential
-			 ,double *source_scalar
 			 ,double rhs_uk_dc[DIM]
 			 ){
   
 
   U2advection_k(u_solvent, rhs_solvent); 
-
-  int im;
-  if(NS_source){
-#pragma omp parallel for schedule(dynamic, 1) private(im)
-      for(int i=0; i<NX; i++){
-	  for(int j=0; j<NY; j++){
-	  for(int k=0; k<NZ; k++){
-		im=(i*NY*NZ_)+(j*NZ_)+k;
-	    grad_potential[0][im] *= source_scalar[im];
-	    grad_potential[1][im] *= source_scalar[im];
-	    grad_potential[2][im] *= source_scalar[im];
-	  }
-	  }
-      }	
-
-    U2zeta_k(u_solvent, rhs_uk_dc, grad_potential);
-
-#pragma omp parallel for schedule(dynamic, 1) private(im)
-      for(int i=0; i<NX; i++){
-	  for(int j=0; j<NY; j++){
-	  for(int k=0; k<NZ_; k++){
-		im=(i*NY*NZ_)+(j*NZ_)+k;
-	    rhs_solvent[0][im] += u_solvent[0][im];
-	    rhs_solvent[1][im] += u_solvent[1][im];
-	  }
-	  }
-      }	
-  }else{
-    for(int d=0; d<DIM; d++){
-      rhs_uk_dc[d] = 0.0;
-    }
+  for(int d=0; d<DIM; d++){
+    rhs_uk_dc[d] = 0.0;
   }
 }
 
@@ -225,7 +189,6 @@ inline void Rhs_NS_solute(Particle *p
 			   ,const int &n_ijk_range
 			   ,double **solute_flux // working memory
 			   ,double **grad_potential
-			   ,double *omega_rhs_scalar // working memory
 			   ,double **surface_normal // working memory
 			   ,double rhs_uk_dc[DIM] 
 			   ){
@@ -238,7 +201,6 @@ inline void Rhs_NS_solute(Particle *p
 
   Zeta_k2u(zeta_k, uk_dc, u);
   Make_surface_normal(surface_normal, p);
-  Reset_phi(omega_rhs_scalar);
 
 for(int n=0; n<N_spec; n++){
     //Truncate_two_third_rule(concentration_k[n]);
@@ -250,7 +212,6 @@ for(int n=0; n<N_spec; n++){
 					 ,solute_flux
 					 ,Valency_e[n]
 					 ,Onsager_coeff[n]
-					 ,omega_rhs_scalar
 					 );
     Solute_impermeability(p, solute_flux, surface_normal);
     Add_advection_flux(solute_flux, u, rhs_solute[n]);
@@ -259,7 +220,7 @@ for(int n=0; n<N_spec; n++){
 
   }
 
-  Rhs_solvent(u, rhs_ns, grad_potential, omega_rhs_scalar, rhs_uk_dc);
+  Rhs_solvent(u, rhs_ns, rhs_uk_dc);
   for(int n=0;n<n_ijk_range;n++){
     Add_zeta_viscous_term(zeta_k, rhs_ns, ijk_range[n]);
   }
@@ -291,7 +252,6 @@ inline void Rhs_NS_Nernst_Planck(Particle *p
 				  ,double **solute_flux // working memory
 				  ,double **grad_potential // working memory
 				  ,double **surface_normal // working memory
-				  ,double *omega_rhs_scalar // working memory
 				  ,double rhs_uk_dc[DIM] 
 				  ,const CTime &jikan
 				  ){
@@ -313,7 +273,7 @@ inline void Rhs_NS_Nernst_Planck(Particle *p
 		 ,concentration_k, rhs_ns, rhs_solute
 		 ,ijk_range, n_ijk_range
 		 ,solute_flux, grad_potential
-		 ,omega_rhs_scalar,surface_normal
+		 ,surface_normal
 		 , rhs_uk_dc
 		 );
 
@@ -328,7 +288,7 @@ void Ion_diffusion_solver_Euler(double **zeta
 				){
   double dc_rhs[DIM]; 
   {
-    Rhs_NS_Nernst_Planck(p, zeta, uk_dc, u, concentration_k, f_ns0, Concentration_rhs0, ijk_range, n_ijk_range, up, f_particle, Surface_normal, phi, dc_rhs, jikan);
+    Rhs_NS_Nernst_Planck(p, zeta, uk_dc, u, concentration_k, f_ns0, Concentration_rhs0, ijk_range, n_ijk_range, up, f_particle, Surface_normal, dc_rhs, jikan);
   }
   for(int n=0;n<n_ijk_range;n++){
     Field_solver_Euler(N_spec, concentration_k, jikan, Concentration_rhs0, ijk_range[n]);
@@ -353,10 +313,10 @@ void NSsolute_solver_Euler(double **zeta
 			   ){
     double dc_rhs[DIM]; 
 
-    Rhs_NS_Nernst_Planck(p, zeta, uk_dc, u, concentration_k, f_ns4, Concentration_rhs0, ijk_range, n_ijk_range, up, f_particle, Surface_normal, phi, dc_rhs, jikan);
+    Rhs_NS_Nernst_Planck(p, zeta, uk_dc, u, concentration_k, f_ns1, Concentration_rhs0, ijk_range, n_ijk_range, up, f_particle, Surface_normal, dc_rhs, jikan);
 
   for(int n=0;n<n_ijk_range;n++){
-    Field_solver_Euler(DIM-1, zeta, jikan, f_ns4, ijk_range[n]);
+    Field_solver_Euler(DIM-1, zeta, jikan, f_ns1, ijk_range[n]);
     Field_solver_Euler(N_spec, concentration_k, jikan, Concentration_rhs0, ijk_range[n]);
   }
 
@@ -367,6 +327,7 @@ void NSsolute_solver_Euler(double **zeta
 
 void NS_solver_slavedEuler(double **zeta, const CTime &jikan, double uk_dc[DIM], const Index_range *ijk_range, const int &n_ijk_range, Particle *p){
  
+  //advection term on the rhs of NS equation (with minus sign)
   Zeta_k2advection_k(zeta, uk_dc, f_ns0);
 
   double dmy0 = -NU*jikan.dt_fluid; 
