@@ -1,0 +1,12 @@
+How to use kapsel:
+1. make/modify "input.udf" using Gourmet / text editor
+2. run KAPSEL
+   bash# ./kapsel -Iinput.udf -Ooutput.udf -Ddefine.udf -Rrestart.udf > out.dat 2> err.dat
+3. analyze "output.udf" using gourmet
+
+Contents
+--------
+*.h/c/cxx:      source code
+udf/            udf define and sample input file
+
+Kapsel v1.0 - May 2006

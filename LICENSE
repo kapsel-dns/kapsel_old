@@ -1,0 +1,29 @@
+KAPSEL LICENCE AGREEMENT
+
+Here, the word KAPSEL represents any version of KAPSEL, Kyoto Advanced Particle 
+Simulator for Electrohydrodynamics, released so far.
+
+1. Since KAPSEL is lecensed free of charge, there is no warantee of the program. 
+The entire risk as to the results caused by the usage of the program is with you.
+2. When you publish research containing the results obtained by KAPSEL, you are
+asked to acknowledge it explicitly in the publication. A typical phrase may be
+"The simulation results in this work were obtained by using the KAPSEL software
+(http://www.cheme.kyoto-u.ac.jp/1koza/kapsel/)".
+3. You can re-distribute the original KAPSEL download freely. When you give the 
+copy to someone else, you must let them know that they must register their names 
+and e-mail addresses to KAPSEL-BBS.
+4. You can modify KAPSEL provided that you do not eliminate or modify the 
+copyright statements attached to the original KAPSEL. The list of modification
+is necessarily attached to the modified version.
+5. If you modify KAPSEL and want to distribute your modified version, please
+follow the rules listed below
+  (1) If you want to distribute your modified version, you must contact the KAPSEL
+  development team beforehand.
+  (2) If you want to distribute your modified version as a part of KAPSEL official
+  distribution, you must obtain the approval of the KAPSEL development team.
+  (3) If you want to build commercial software by using all or a part of KAPSEL, you
+  must obtain permission from the KAPSEL development team.
+6. When the KAPSEL development team finds that KAPSEL is infringing on the rights 
+of a third party, it will send an email to the registered email address of the 
+users on the action to be taken to stop the infringement. You have to follow the
+instructions of this email.
