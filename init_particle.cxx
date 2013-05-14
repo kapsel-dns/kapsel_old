@@ -1,14 +1,12 @@
 //
-// $Id: init_particle.cxx,v 1.66 2006/06/11 16:10:28 nakayama Exp $
+// $Id: init_particle.cxx,v 1.2 2006/07/28 14:49:26 nakayama Exp $
 //
 #include "init_particle.h"
 
 void Init_Particle(Particle *p){
   Particle_domain(Phi
 		  ,NP_domain, Sekibun_cell
-		  ,NP_domain_extended, Sekibun_cell_extended
 		  ,NP_domain_interface, Sekibun_cell_interface
-		  ,NP_domain_interface_extended, Sekibun_cell_interface_extended
 		  ,NP_domain_exponential, Sekibun_cell_exponential
 		  );
 
@@ -32,16 +30,9 @@ void Init_Particle(Particle *p){
     //const double overlap_length = SIGMA * pow(2.,1./6.);
     for(int i=0; i<Particle_Number; i++){
       int overlap = 1;
-      double wall_radius[DIM] = {0.,0.,0.};
-      if(SW_EQ == Shear_Navier_Stokes){
-	wall_radius[1] = RADIUS * 1.5;
-      }
-      if(WALL == z_dirichlet){
-	wall_radius[2] = Radius_wall + RADIUS;
-      }
       do{
 	for(int d=0; d< DIM; d++){
-	  p[i].x[d] = RAx(L_particle[d] - 2.0 * wall_radius[d]) + wall_radius[d];
+	  p[i].x[d] = RAx(L_particle[d]);
 	}
 	int j;
 	for(j=0; j< i; j++){
@@ -60,7 +51,7 @@ void Init_Particle(Particle *p){
     if(DISTRIBUTION == FCC){
       fprintf(stderr, "#init_particle: distributed on FCC latice: ");
       fprintf(stderr,"(VF, VF_LJ) = %g %g\n", VF, VF_LJ);
-}
+    }
 
     {
       double l_particle[DIM];
@@ -114,21 +105,6 @@ void Init_Particle(Particle *p){
 	    }
 	  }
 	}
-	if(0){
-	  fprintf(stdout, "%g (%g %g %g) (%g %g %g) %d(%d %d %d)\n"
-		  ,VF
-		  ,l_particle[0]
-		  ,l_particle[1]
-		  ,l_particle[2]
-		  ,lratio[0]
-		  ,lratio[1]
-		  ,lratio[2]
-		  ,nn_base
-		  ,nn[0]
-		  ,nn[1]
-		  ,nn[2]
-		  );
-	}
       }
       int SW_just_packed;
       if(Particle_Number - 4*nn[0]*nn[1]*nn[2] == 0){
@@ -161,7 +137,6 @@ void Init_Particle(Particle *p){
       }
       for(int i=0; i<Particle_Number; i++){
 	int zlayer = 2*nn[0]*nn[1]; 
-	
 	int ix = i%nn[0];
 	int iy = (i%zlayer)/nn[0];
 	int iz = i/zlayer;
@@ -173,9 +148,6 @@ void Init_Particle(Particle *p){
 	p[i].x[2] = origin[2]
 	  + (double)iz*lattice[2]/2.0;
       }
-      if(WALL == z_dirichlet
-	 || (SW_EQ == Shear_Navier_Stokes && HYDRO_int > 0)
-	 ){
 	for(int n=0;n<Particle_Number ;n++){
 	  for(int d=0; d< DIM; d++){
 	    p[n].fr[d] = 0.0;
@@ -184,32 +156,26 @@ void Init_Particle(Particle *p){
 	    p[n].fv_previous[d] = 0.0;
 	  }
 	}
-	{
 	  const double save_A_R_cutoff = A_R_cutoff;
 	  {
+		if(LJ_powers == 0){
 	    A_R_cutoff = pow(2.,1./6.);
+	    }	
+		if(LJ_powers == 1){
+	    A_R_cutoff = pow(2.,1./12.);
+        fprintf(stderr,"# A_R_cutoff %f\n", A_R_cutoff);
+		}
+		if(LJ_powers == 2){
+	    A_R_cutoff = pow(2.,1./18.);
+        fprintf(stderr,"# A_R_cutoff %f\n", A_R_cutoff); 
+		}
 
 	    double zmin = 0.;
 	    double zmax = l_particle[2]; 
-	    if(WALL == z_dirichlet){
-	      zmin = Radius_wall + RADIUS*A_R_cutoff;
-	      zmax = l_particle[2] - zmin;
-	      if(zmax - zmin < 0.){
-		zmin = 0.;
-		zmax = l_particle[2];
-	      }
-	    }
 	    double ymin = 0.;
 	    double ymax = l_particle[1];
-	    if(SW_EQ == Shear_Navier_Stokes){
-	      ymin = RADIUS*A_R_cutoff;
-	      ymax = l_particle[1] - ymin;
-	      if(ymax - ymin < 0.){
-		ymin = 0.;
-		ymax = l_particle[2];
-	      }
-	    }
-	    double minz,maxz;
+	    
+		double minz,maxz;
 	    double miny,maxy;
 	    int cnt = 0;
 	    do{
@@ -234,8 +200,6 @@ void Init_Particle(Particle *p){
 	    A_R_cutoff = save_A_R_cutoff;
 	  }
 	}
-      }
-    }
     if(DISTRIBUTION == random_walk){
       fprintf(stderr, "#init_particle: random walk (%d steps): "
 	      ,N_iteration_init_distribution);
@@ -292,17 +256,13 @@ void Init_Particle(Particle *p){
       delete ufin;
     }
   }else if(DISTRIBUTION == BCC){
-    if(WALL != PBC){
-      fprintf(stderr, "set boundary_condition.type=full_periodic when INIT_distribution.type=BCC.\n");
-      exit_job(EXIT_FAILURE);
-    }
     fprintf(stderr, "#init_particle: distributed on BCC latice: ");
     fprintf(stderr,"(VF, VF_LJ) = %g %g\n", VF, VF_LJ);
     double dmy = pow((double)Particle_Number/2., 1./DIM);
     int nn= (int)ceil(dmy);
-    double ax = LX/(double)nn;
-    double ay = LY/(double)nn;
-    double az = LZ/(double)nn;
+    double ax = L_particle[0]/(double)nn;
+    double ay = L_particle[1]/(double)nn;
+    double az = L_particle[2]/(double)nn;
 
     for(int i=0; i<Particle_Number; i++){
       int ix = i%nn;
@@ -317,20 +277,6 @@ void Init_Particle(Particle *p){
       if(m == 1){
 	p[i].x[0] = p[i].x[0] + ax / 2.0;
 	p[i].x[1] = p[i].x[1] + ax / 2.0;
-      }
-    }
-  }
-  if(0){
-  //if(WALL == z_dirichlet){
-    for(int n=0;n<Particle_Number;n++){
-      if(p[n].x[2] < Radius_wall+RADIUS 
-	 || p[n].x[2] > L_particle[2]-(Radius_wall+RADIUS )
-	 ){
-	fprintf(stdout, "aaa:%g (%g %g)\n"
-		,p[n].x[2]
-		,Radius_wall+RADIUS 
-		,L_particle[2]-(Radius_wall+RADIUS)
-		);
       }
     }
   }
@@ -369,15 +315,6 @@ void Init_Particle(Particle *p){
     }
     offset += Particle_Numbers[j]; 
   }
-  if(SW_EQ == Shear_Navier_Stokes){
-    for(int n = 0; n < Particle_Number ; n++){
-      p[n].v[0] = Shear_rate *(0.5 * LY_shear - p[n].x[1]);
-      p[n].v_old[0] = Shear_rate *(0.5 * LY_shear - p[n].x[1]);
-      
-      p[n].omega[2] = 0.5* Shear_rate;
-      p[n].omega_old[2] = 0.5* Shear_rate;
-    }
-  }
 }
 void Show_parameter(AVS_parameters Avs_parameters, Particle *p){
   FILE *fp=stderr;
@@ -388,69 +325,25 @@ void Show_parameter(AVS_parameters Avs_parameters, Particle *p){
       dmy >>=1;
     }
     pow -= 1;
-    fprintf(fp,"#mesh = %d * %d * %d (= %d >= 2^%d)"
+    fprintf(fp,"#mesh = %d * %d * %d (= %d >= 2^%d)\n"
 	    ,NX,NY,NZ, NX*NY*NZ, pow);
-    if(WALL == PBC){
-      fprintf(stderr, " full periodic boundary condition\n");
-    }else if(WALL == z_dirichlet){
-      fprintf(stderr, " LJ wall on z=0+%g plane (u=(%g %g %g))\n"
-	      ,Radius_wall
-	      ,U_wall[0], U_wall[1], U_wall[2]);
-    }
+
     fprintf(fp,"#DX = %g:",DX);
-    if(SW_EQ == Shear_Navier_Stokes){
-      fprintf(fp," (L_x,L_y,L_z) = %g %g %g\n",L[0], LY_shear, L[2]);
-    }else {
-      fprintf(fp," (L_x,L_y,L_z) = %g %g %g\n",L[0], L[1], L[2]);
-    }
+    fprintf(fp," (L_x,L_y,L_z) = %g %g %g\n",L[0], L[1], L[2]);
     fprintf(fp,"#\n");
     if(SW_EQ == Navier_Stokes 
-       || SW_EQ == Slippy_Navier_Stokes 
-       || SW_EQ == Shear_Navier_Stokes
-       || SW_EQ == Two_fluid
+       || SW_EQ == Shear_Navier_Stokes || SW_EQ == Shear_Navier_Stokes_Lees_Edwards
        ){
-      fprintf(fp,"#(eta, rho, nu) = %g %g %g\n",ETA, RHO, NU);
-      if(SW_EQ == Navier_Stokes){
+    fprintf(fp,"#(eta, rho, nu) = %g %g %g\n",ETA, RHO, NU);
 	fprintf(fp,"# kBT = %g\n",kBT);
-      }
-      if(SW_EQ==Slippy_Navier_Stokes){
-	fprintf(fp,"# Nu_ratio = %g\n",Delta_ETA/ETA+1.);
-      }
-      fprintf(fp,"#\n");
+	fprintf(fp,"# alpha_v = %g\n",alpha_v);
+	fprintf(fp,"# alpha_o = %g\n",alpha_o);
+    fprintf(fp,"#\n");
     }
     fprintf(fp,"#(number of particles) = %d\n", Particle_Number);
     fprintf(fp,"#(Radius, xi) = %g %g\n",RADIUS,XI);
-    //fprintf(fp,"#(VF, VF_LJ) = %g %g\n", VF, VF_LJ);
   }
-  {
-    if(SW_EQ==Qian_Sheng || SW_EQ == nematic_Allen_Cahn || SW_EQ == Olmsted_Goldbart){
-      fprintf(fp,"############################ under development\n");
-      fprintf(fp,"# LdG coeffs.\n");
-      fprintf(fp,"# (A, B, C, L1, L2)=(%g, %g, %g, %g, %g,)\n"
-	      ,A_LdG, B_LdG, C_LdG, L1tilde, L2tilde);
-      fprintf(fp,"# nematic coherence length (sqrt(L1/A), sqrt(L2/A))=(%g, %g)\n"
-	      ,sqrt(L1tilde/ABS(A_LdG)), sqrt(L2tilde/ABS(A_LdG)));
-      fprintf(fp,"# equilibrium scalar order = %g\n"
-	      , A_eq);
-      fprintf(fp,"# rotational diffusion time = %g\n"
-	      ,Mu_1/fabs(A_LdG + L1tilde *KMAX2 + L1tilde *KMAX2));
 
-      if(SW_EQ==Qian_Sheng){
-	fprintf(fp,"# Qian-Sheng viscosities\n");
-	fprintf(fp,"# (beta1, (beta5+beta6)/2, beta_iso)=(%g, %g, %g)\n"
-		,Beta_1, Beta_56*.5, Isotropic_viscosity);
-	fprintf(fp,"# (1/mu1, -mu2/(2mu1))=(%g, %g)\n"
-		,One_overMu1, -Mu_2overMu_1_half);
-      }else if(SW_EQ == Olmsted_Goldbart){
-	fprintf(fp,"# Olmsted_Goldbart viscosities\n");
-	fprintf(fp,"# (beta_iso)=(%g)\n"
-		,Isotropic_viscosity);
-	fprintf(fp,"# (1/mu1, -mu2/(2mu1))=(%g, %g)\n"
-		,One_overMu1, -Mu_2overMu_1_half);
-      }
-      fprintf(fp,"############################\n");
-    }
-  }
   {
     if(SW_EQ==Electrolyte){
       fprintf(fp,"############################ electrolyte solution\n");
@@ -492,7 +385,7 @@ void Show_parameter(AVS_parameters Avs_parameters, Particle *p){
 	    fprintf(fp,"# nonlinear electrostatics regime (for isolated sphere)\n");
 	    fprintf(fp,"#  for particle species %d\n",i);
 	  }
-	  fprintf(fp,"#  (linear_potential,kBT/Z+e)=(%g,%g)\n"
+	  fprintf(fp,"#  (linear_potential,kBT/Ze)=(%g,%g)\n"
 		  ,linear_zeta
 		  ,thermal_potential);
 	}
@@ -509,23 +402,12 @@ void Show_parameter(AVS_parameters Avs_parameters, Particle *p){
       fprintf(fp,"#\n");
       fprintf(fp,"############################\n");
     }
-    //fprintf(fp,"#(number of particles) = %d\n", Particle_Number);
-    //fprintf(fp,"#(Radius, xi, VF) = %g %g %g\n", RADIUS, XI, VF);
   }
   {
     fprintf(fp,"# gravitational acceleration= %.10g", G);
     if(G != 0.0){
       char direction[DIM][32]={"-X","-Y","-Z"};
       fprintf(fp,"\tin %s-direction\n", direction[G_direction]);
-      if(SW_EQ == Slippy_Navier_Stokes){ 
-	for(int n=0;n<Component_Number;n++){
-	  double eta_ratio = Nu_ratio*MASS_RATIOS[n];
-	  fprintf(fp,"# (one-particle settling Re of spec %d= %.10g)\n"
-		  ,n
-		  ,2./9.*POW3(RADIUS)*G/SQ(NU)*(MASS_RATIOS[n]-1.)/(2./3.+eta_ratio)*(1.+eta_ratio)
-		  );
-	}
-      }
     }else{
       fprintf(fp,"\n");
     }
@@ -533,46 +415,26 @@ void Show_parameter(AVS_parameters Avs_parameters, Particle *p){
   {
     fprintf(fp,"# total %d steps, sample at every %d steps (%d snapshots)\n",
 	    MSTEP, GTS, Num_snap+1);
-    if(SW_EQ == Shear_Navier_Stokes){
-      double total_strain = MSTEP * DT * Shear_rate * LY_shear;
+    if(SW_EQ == Shear_Navier_Stokes || SW_EQ == Shear_Navier_Stokes_Lees_Edwards){
+      double total_strain = MSTEP * DT * Shear_rate * LY;
     fprintf(fp,"# total strain = %g (%g Lx)\n"
 	    ,total_strain, total_strain/L[0]);
     }
   }
   {
     fprintf(fp,"#\n");
-    if(HYDRO_int > 0){
-      if(SW_EQ == Slippy_Navier_Stokes){ 
-	fprintf(fp,"# Hydrodynamic interaction -> Slippy\n");
-	fprintf(fp,"# always with rotation\n");
-      }else {
-	fprintf(fp,"# Hydrodynamic interaction -> correct\n");
+	fprintf(fp,"# Hydrodynamic interaction -> on\n");
 	if(ROTATION){
 	  fprintf(fp,"# with rotation of particle\n");
 	}else {
 	  fprintf(fp,"# w/o rotation of particle\n");
 	}
-      }
-      if(STOKES){
+    if(STOKES){
 	fprintf(fp,"# fluid advection is OMITTED.\n");
       }else {
 	fprintf(fp,"# with fluid advection.\n");
       }
-    }else {
-      if(kBT > 0 && !(SW_EQ == Electrolyte || SW_EQ == Two_fluid) ){
-	fprintf(fp,"# Hydrodynamic interaction -> draining: BD\n");
-	//fprintf(fp,"# Hydrodynamics interaction -> draining: overdamped BD\n");
-      }else {
-	if(HYDRO_int == 0){
-	  fprintf(fp,"# Hydrodynamic interaction -> draining\n");
-	}else if(HYDRO_int < 0){
-	  fprintf(fp,"# Hydrodynamic interaction -> draining and lubrication of squeeze-mode\n");
-	}
-      }
-      fprintf(fp,"# always w/o rotation\n");
-    }
-    if(HYDRO_int > 0){
-      if(FIX_CELL){
+    if(FIX_CELL){
 	fprintf(fp,"# time-dependent average pressure gradient ASSIGNED in");
 	for(int d=0;d<DIM;d++){
 	  char *xyz[DIM]={"x","y","z"};
@@ -581,15 +443,12 @@ void Show_parameter(AVS_parameters Avs_parameters, Particle *p){
 	  }
 	}
 	fprintf(fp,"direction\n");
-	if(SW_EQ == Shear_Navier_Stokes ){
-	  fprintf(fp,"# (if Shear_Navier_Stokes selected, \n");
-	  fprintf(fp,"# \taverage pressure gradient in y-direction always assigend.)\n");
-	}
-      }
     }
-    if(SW_EQ == Shear_Navier_Stokes){
+
+    if(SW_EQ == Shear_Navier_Stokes || SW_EQ == Shear_Navier_Stokes_Lees_Edwards){
       fprintf(fp,"# shear rate = %g\n",Shear_rate);
     }
+
     if(LJ_truncate >=0){
       char line[1<<10];
       if(LJ_truncate >0){
@@ -612,7 +471,7 @@ void Show_parameter(AVS_parameters Avs_parameters, Particle *p){
       }
       sprintf(line,"%s, EPSILON_LJ= %g"
 	      ,line, EPSILON);
-      if(SW_EQ == Shear_Navier_Stokes){
+      if(SW_EQ == Shear_Navier_Stokes || SW_EQ == Shear_Navier_Stokes_Lees_Edwards){
 	if(Srate_depend_LJ_cap < DBL_MAX){
 	  sprintf(line,"%s, cap= %g"
 		  ,line, Srate_depend_LJ_cap);
@@ -624,8 +483,6 @@ void Show_parameter(AVS_parameters Avs_parameters, Particle *p){
     }
     fprintf(fp,"#\n");
     if(SW_EQ == Navier_Stokes 
-       || SW_EQ == Slippy_Navier_Stokes
-       || SW_EQ == Two_fluid
        ){
       fprintf(fp,"#t_min=1/nu*k_max^2= %g\n", Tdump);
     }else if(SW_EQ == Electrolyte ){
@@ -660,7 +517,7 @@ void Show_parameter(AVS_parameters Avs_parameters, Particle *p){
       T_LJ = sqrt(mass_min/EPSILON)*SIGMA;
       fprintf(fp,"#  = %g (LJ time[ (M_{min}/EPSILON)^{0.5} SIGMA])\n"
 	      ,DT/T_LJ);
-      if(SW_EQ == Shear_Navier_Stokes){
+      if(SW_EQ == Shear_Navier_Stokes || SW_EQ == Shear_Navier_Stokes_Lees_Edwards){
 	fprintf(fp,"#(shear rate * dt) = %g\n"
 		,Shear_rate * DT);
 	fprintf(fp,"#(LJcap * dt/M_{min}) = %g\n"
@@ -704,4 +561,67 @@ void Show_parameter(AVS_parameters Avs_parameters, Particle *p){
       fprintf(fp, "#UDF output is supressed.\n");
     }
   }
+
+    if((SW_EQ == Shear_Navier_Stokes || SW_EQ == Shear_Navier_Stokes_Lees_Edwards) && !Fixed_particle){
+	for(int n = 0; n < Particle_Number ; n++){
+	    p[n].v[0] = 0.0e0;
+	    p[n].v_old[0] = 0.0e0;
+	    if (ROTATION) {
+		p[n].omega[2] = 0.;//0.5*Shear_rate;
+		p[n].omega_old[2] = 0.;//0.5*Shear_rate;
+	    } else {
+		p[n].omega[2] = 0.;
+		p[n].omega_old[2] = 0.;
+	    }
+	}
+    }
+    /*for (int n = 0; n < Particle_Number; n++){
+	for (int d = 0; d < DIM; d++) {
+	    p[n].x_previous[d] = p[n].x[d];
+	}
+    }*/
 }
+void Init_Chain(Particle *p){
+
+    fprintf(stderr, "#init_particle: Chain distributed randomly ");
+    fprintf(stderr,"(VF, VF_LJ) = %g %g\n", VF, VF_LJ);
+    
+    const double overlap_length =0.9*SIGMA;	  
+     for(int d=0; d<DIM; d++){
+       p[0].x[d]=HL_particle[d];
+     }
+
+    int overlap;
+     for(int d=0;d<1000;d++){
+      double dmy=RAx(PI2); 
+     } 
+
+     for(int n=0; n<Particle_Number-1; n++){
+      overlap=1;
+       do{
+         double dmy0 = 0.96*SIGMA; 
+	     double dmy1 = RAx(PI2);
+         double dmy2 = RAx(M_PI);
+    
+         p[n+1].x[0]=p[n].x[0]+dmy0*sin(dmy2)*sin(dmy1);
+         p[n+1].x[1]=p[n].x[1]+dmy0*sin(dmy2)*cos(dmy1);
+         p[n+1].x[2]=p[n].x[2]+dmy0*cos(dmy2); 
+         
+	  for(int d=0; d<DIM ;d++){
+	    p[n+1].x[d] = fmod(p[n+1].x[d]+L_particle[d] , L_particle[d]);
+	  }
+	 
+	 int m;
+         for(m=0; m<n+1; m++){
+             if(Distance(p[m].x, p[n+1].x) <= overlap_length){
+	       break;
+             }
+          }
+         if(m >= n+1){
+           overlap = 0 ; 
+       }
+       }while(overlap);
+     }
+
+}
+

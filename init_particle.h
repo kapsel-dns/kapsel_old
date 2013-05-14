@@ -1,5 +1,5 @@
 //
-// $Id: init_particle.h,v 1.5 2005/09/05 18:06:48 nakayama Exp $
+// $Id: init_particle.h,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 #ifndef INIT_PARTICLE_H
 #define INIT_PARTICLE_H
@@ -13,6 +13,7 @@
 #include "fluct.h"
 
 void Init_Particle(Particle *p);
+void Init_Chain(Particle *p);
 void Show_parameter(AVS_parameters Avs_parameters, Particle *p);
 
 inline void Show_particle(Particle *p){

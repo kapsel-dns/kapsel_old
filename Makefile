@@ -72,8 +72,6 @@ OBJS  	= mt19937ar.o\
 	fluct.o\
 	alloc.o\
 	solute_rhs.o\
-	operate_qij.o\
-	operate_Qian_Sheng.o\
 	fftsg.o\
 	fftsg3d.o\
 	avs_output.o\

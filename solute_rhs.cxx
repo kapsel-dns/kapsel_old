@@ -1,5 +1,5 @@
 //
-// $Id: solute_rhs.cxx,v 1.8 2006/02/01 05:11:48 kin Exp $
+// $Id: solute_rhs.cxx,v 1.1 2006/06/27 18:41:29 nakayama Exp $
 //
 #include "solute_rhs.h"
 
@@ -9,247 +9,232 @@ int NP_domain_exponential;
 int **Sekibun_cell_exponential;
 
 double *Total_solute;
-Value *Concentration;
 
-Value *Concentration_rhs0;
-Value *Concentration_rhs1;
+double **Surface_normal;
+double **Concentration;
+double **Concentration_rhs0;
+double **Concentration_rhs1;
 
-Value Surface_normal[DIM];
 //////
 
 void Mem_alloc_solute(void){
   Valency_e = alloc_1d_double(N_spec);
-  Onsager_coeff = alloc_1d_double(N_spec);
   Total_solute = alloc_1d_double(N_spec);
-  Concentration = (Value *)malloc(sizeof(Value *) * N_spec);
 
-  Concentration_rhs0= (Value *)malloc(sizeof(Value *) * N_spec);
-  Concentration_rhs1= (Value *)malloc(sizeof(Value *) * N_spec);
+  Surface_normal= (double **)malloc(sizeof(double *) * DIM);
+
+  Concentration= (double **)malloc(sizeof(double *) * N_spec);
+  Concentration_rhs0= (double **)malloc(sizeof(double *) * N_spec);
+  Concentration_rhs1= (double **)malloc(sizeof(double *) * N_spec);
 
   for(int n=0;n<N_spec;n++){
-    Concentration[n] = alloc_3d_double(NX, NY, NZ_);
-    Concentration_rhs0[n] = alloc_3d_double(NX, NY, NZ_);
-    Concentration_rhs1[n] = alloc_3d_double(NX, NY, NZ_);
+    Concentration[n]= alloc_1d_double(NX*NY*NZ_);
+    Concentration_rhs0[n]= alloc_1d_double(NX*NY*NZ_);
+    Concentration_rhs1[n]= alloc_1d_double(NX*NY*NZ_);
   }
   for(int d=0;d<DIM;d++){
-    Surface_normal[d] = alloc_3d_double(NX, NY, NZ_);
+    Surface_normal[d] = alloc_1d_double(NX*NY*NZ_);
   }
 }
 
-
-void Solute_impermeability(const Particle *p
-			   ,Value solute_flux_x[DIM]
-			   ,const Value surface_normal[DIM]
+void Solute_impermeability(Particle *p
+			   ,double **solute_flux_x
+			   ,double **surface_normal
 			   ){
-  for(int n=0; n < Particle_Number; n++){
     double xp[DIM];
+    int x_int[DIM];
+    double residue[DIM];
+    int sw_in_cell;
+    int r_mesh[DIM];
+    double r[DIM];
+    double normal[DIM];
+    double norm2;
+	double dmy;
+#pragma omp parallel for schedule(dynamic, 1) private(xp,x_int,residue,sw_in_cell,r_mesh,r,normal,norm2,dmy)
+  for(int n=0; n < Particle_Number; n++){
+  // double xp[DIM];
     for(int d=0;d<DIM;d++){
       xp[d] = p[n].x[d];
     }
 
-    int x_int[DIM];
-    double residue[DIM];
-    int sw_in_cell 
+    //int x_int[DIM];
+    //double residue[DIM];
+    //int sw_in_cell 
+    sw_in_cell 
       = Particle_cell(xp, DX, x_int, residue);// {1,0} が返ってくる
     sw_in_cell = 1;
-    int r_mesh[DIM];
-    double r[DIM];
+    //int r_mesh[DIM];
+    //double r[DIM];
     for(int mesh=0; mesh < NP_domain; mesh++){
       Relative_coord(Sekibun_cell[mesh]
 		     ,x_int, residue, sw_in_cell, Ns, DX, r_mesh, r);
 
-      double normal[DIM];
-      double norm2 = 0.;
+    //  double normal[DIM];
+      //double norm2 = 0.;
+      norm2 = 0.;
       for(int d=0;d<DIM;d++){
-	normal[d] = surface_normal[d][r_mesh[0]][r_mesh[1]][r_mesh[2]];
+	normal[d] = surface_normal[d][(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]];
 	norm2 += SQ(normal[d]);
       } 
       if(norm2 > 0.){
-	double dmy = 0.;
+	//double dmy = 0.;
+	dmy = 0.;
 	for(int d=0;d<DIM;d++){
 	  dmy += 
-	    solute_flux_x[d][r_mesh[0]][r_mesh[1]][r_mesh[2]]
+	    solute_flux_x[d][(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]]
 	    *normal[d];
 	}
 	dmy /= norm2;
 	for(int d=0; d < DIM; d++ ){ 
-	  solute_flux_x[d][r_mesh[0]][r_mesh[1]][r_mesh[2]]
+	  solute_flux_x[d][(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]]
 	    -= normal[d] * dmy;
 	}
       }
     }
   }
 }
+
 void Rescale_solute(double *rescale_factor
-		    ,const double *total_solute
-		    ,Value *conc_k
+		    ,double *total_solute
+		    ,double **conc_k
 		    ,Particle *p
-		    ,Value &phi_p // working memory
-		    ,Value &conc_x // working memory
+		    ,double *phi // working memory
+		    ,double *conc_x // working memory
 		    ){
-  Reset_phi(phi_p);
-  Make_phi_particle(phi_p,p);
+
+  Reset_phi(phi);
+  Make_phi_particle(phi,p);
+
+  int im;
+  double dmy;
+
   for(int n=0;n<N_spec;n++){
     A_k2a_out(conc_k[n], conc_x);
-    double dmy = Count_single_solute(conc_x, phi_p);
+    //double dmy = Count_single_solute(conc_x, phi);
+    dmy = Count_single_solute(conc_x, phi);
     rescale_factor[n] = total_solute[n]/dmy;
-    //fprintf(stderr, "bbb:%g %g\n", dmy, rescale);
+#pragma omp parallel for schedule(dynamic, 1) private(im)
     for(int i=0;i<NX;i++){
       for(int j=0;j<NY;j++){
-	for(int k=0;k<NZ_;k++){
-	  conc_k[n][i][j][k] *= rescale_factor[n];
+	    for(int k=0;k<NZ_;k++){
+		  im=(i*NY*NZ_)+(j*NZ_)+k;
+	  conc_k[n][im] *= rescale_factor[n];
 	}
       }
     }
   }
 }
 
-double Count_single_solute(const Value &conc_x
-			  ,const Value &phi_p 
+double Count_single_solute(double *conc_x
+			  ,double *phi_p
 			  ){
   // set phi(x) before calling 
   
   double dmy = 0.;
+  int im;
+#pragma omp parallel for schedule(dynamic, 1) reduction(+:dmy) private(im)
   for(int i=0;i<NX;i++){
     for(int j=0;j<NY;j++){
       for(int k=0;k<NZ;k++){
-	dmy += (1.-phi_p[i][j][k]) * conc_x[i][j][k];
+		//int im=(i*NY*NZ_) + (j*NZ_) +k;
+		im=(i*NY*NZ_)+(j*NZ_)+k;
+	    dmy += (1.-phi_p[im]) * conc_x[im];
       }
     }
   }
   return dmy * DX3;
 }
 
-void Make_phi_exclude(Value &phi
-		      ,Particle *p
-		      ,const double &dx
-		      ,const int &np_domain
-		      ,int **sekibun_cell
-		      ,const int Nlattice[DIM]
-		      ){
-  for(int n=0; n < Particle_Number; n++){
-    double xp[DIM];
-    for(int d=0;d<DIM;d++){
-      xp[d] = p[n].x[d];
-    }
-    
-    int x_int[DIM];
-    double residue[DIM];
-    int sw_in_cell 
-      = Particle_cell(xp, dx, x_int, residue);// {1,0} が返ってくる
-    sw_in_cell = 1;
-    int r_mesh[DIM];
-    double r[DIM];
-    for(int mesh=0; mesh < np_domain; mesh++){
-      Relative_coord(sekibun_cell[mesh]
-		     , x_int, residue, sw_in_cell, Nlattice, dx, r_mesh, r);
-      double x[DIM];
-      double dmy = 0.;
-      for(int d=0;d<DIM;d++){
-	x[d] = r_mesh[d] * dx;
-	dmy += SQ(x[d]-xp[d]);
-      }
-      double dmy_phi= Phi_exponential(dmy);
-      phi[r_mesh[0]][r_mesh[1]][r_mesh[2]] += dmy_phi;
-    }
-  }
-}
-
-void Init_solute(Value &conc
-		 ,Particle *p
-		 ){
-  {
-    for(int n=0;n<N_spec;n++){
-      Valency_e[n] = 1.;
-      Onsager_coeff[n] = Onsager_solute_coeff;
-    }
-  }
-
-  Reset_phi(conc);
-  {
-    for(int i=0;i<NX;i++){
-      for(int j=0;j<NY;j++){
-	for(int k=0;k<NZ;k++){
-	  conc[i][j][k] = Mean_Bulk_concentration;
-	}
-      }
-    }
-  }
-  {
-    Reset_phi(phi);
-    Make_phi_particle(phi,p);
-    Total_solute[0] = Count_single_solute(conc, phi);
-  }
-  A2a_k(conc);
-}
-
 int NS_source = 0;
-void Solute_solver_rhs_nonlinear_x_single(const Value grad_potential[DIM]
-					  ,const Value &concentration_x
-					  ,Value solute_flux[DIM]
-					  ,const double &valency_e
-					  ,const double &onsager_coeff
-					  ,Value &omega_rhs
+void Solute_solver_rhs_nonlinear_x_single(double **grad_potential
+					  ,double *concentration_x
+					  ,double **solute_flux
+					  ,double &valency_e
+					  ,double &onsager_coeff
+					  ,double *omega_rhs
 					  ){
+  int im;
+  double dmy_u[DIM];
+  double dmy_grad_pot[DIM];
+  double dmy_omega_rhs;
+  double dmy_conc;
+  double dmy_conc_flux[DIM];
+  double dmy_interaction;
+#pragma omp parallel for schedule(dynamic, 1) private(im,dmy_u,dmy_grad_pot,dmy_omega_rhs,dmy_conc,dmy_conc_flux,dmy_interaction)
   for(int i=0; i<NX; i++){
     for(int j=0; j<NY; j++){
       for(int k=0; k<NZ; k++){
-	double dmy_u[DIM];
-	double dmy_grad_pot[DIM];
-	double dmy_omega_rhs;
+	im=(i*NY*NZ_)+(j*NZ_)+k;
+	//double dmy_u[DIM];
+	//double dmy_grad_pot[DIM];
+	//double dmy_omega_rhs;
 	for(int d=0;d<DIM;d++){
-	  dmy_grad_pot[d] = grad_potential[d][i][j][k];
+	  //dmy_grad_pot[d] = grad_potential[d][i][j][k];
+	  dmy_grad_pot[d] = grad_potential[d][im];
 	}
-	double dmy_conc = concentration_x[i][j][k];
+	//double dmy_conc = concentration_x[im];
+	dmy_conc = concentration_x[im];
 	if(NS_source){
 	  dmy_omega_rhs = -IRHO * dmy_conc * valency_e;
 	}
-	double dmy_conc_flux[DIM];
+	//double dmy_conc_flux[DIM];
 	for(int d=0;d<DIM;d++){
-	  double dmy_interaction = dmy_grad_pot[d]*valency_e;
+	  dmy_interaction = dmy_grad_pot[d]*valency_e;
+	  //double dmy_interaction = dmy_grad_pot[d]*valency_e;
 	  dmy_conc_flux[d] = dmy_conc * (
 					 onsager_coeff * dmy_interaction
 					 );
 	}
 	for(int d=0;d<DIM;d++){
-	  solute_flux[d][i][j][k] += dmy_conc_flux[d];
+	  solute_flux[d][im] += dmy_conc_flux[d];
 	}
 	if(NS_source){
-	  omega_rhs[i][j][k] += dmy_omega_rhs;
+	  omega_rhs[im] += dmy_omega_rhs;
 	}
       }
     }
   }
 } 
-void Add_advection_flux(Value solute_flux[DIM]
-			,const Value u_solvent[DIM]
-			,const Value &concentration_x
+void Add_advection_flux(double **solute_flux
+			,double **u_solvent
+			,double *concentration_x
 			){
+  int im;
+  double dmy_conc;
+#pragma omp parallel for schedule(dynamic, 1) private(im,dmy_conc)
   for(int i=0; i<NX; i++){
     for(int j=0; j<NY; j++){
       for(int k=0; k<NZ; k++){
-	double dmy_conc = concentration_x[i][j][k];
+		//int im=(i*NY*NZ_)+(j*NZ_)+k;
+		im=(i*NY*NZ_)+(j*NZ_)+k;
+	    dmy_conc = concentration_x[im];
+	//double dmy_conc = concentration_x[im];
 	for(int d=0;d<DIM;d++){
-	  solute_flux[d][i][j][k] += dmy_conc * -u_solvent[d][i][j][k];
+	  solute_flux[d][im] += dmy_conc * -u_solvent[d][im];
 	}
       }
     }
   }
 }
 
-void Diffusion_flux_single(Value diff_flux_x[DIM]
-			    ,const Value &conc_k
-			    ,const double &onsager_coeff
-			    ,Value &dmy_value // working memory
+void Diffusion_flux_single(double **diff_flux_x
+			    ,double *conc_k
+			    ,double &onsager_coeff
+			    ,double *dmy_value // working memory
 			    ){
+  int im;
+#pragma omp parallel for schedule(dynamic, 1) private(im)
   for(int i=0; i<NX; i++){
     for(int j=0; j<NY; j++){
       for(int k=0; k<NZ_; k++){
-	dmy_value[i][j][k] = 
-	  kBT * onsager_coeff * conc_k[i][j][k];
+		//int im=(i*NY*NZ_)+(j*NZ_)+k;
+		im=(i*NY*NZ_)+(j*NZ_)+k;
+	dmy_value[im] = 
+	  kBT * onsager_coeff * conc_k[im];
       }
     }
   }	      
+
   A_k2da_k(dmy_value, diff_flux_x);
   U_k2u(diff_flux_x);
 }

@@ -1,5 +1,5 @@
 //
-// $Id: solute_rhs.h,v 1.7 2006/02/01 05:11:48 kin Exp $
+// $Id: solute_rhs.h,v 1.1 2006/06/27 18:41:29 nakayama Exp $
 //
 #ifndef SOLUTE_RHS_H
 #define SOLUTE_RHS_H
@@ -16,58 +16,48 @@ extern int NP_domain_exponential;
 extern int **Sekibun_cell_exponential;
 
 extern double *Total_solute;
-extern Value *Concentration;
-extern Value *Concentration_rhs0;
-extern Value *Concentration_rhs1;
 
-extern Value Surface_normal[DIM];
+extern double **Surface_normal;
+extern double **Concentration;
+extern double **Concentration_rhs0;
+extern double **Concentration_rhs1;
 
 void Mem_alloc_solute(void);
-void Make_phi_exclude(Value &phi
-		      ,Particle *p
-		      ,const double &dx
-		      ,const int &np_domain
-		      ,int **sekibun_cell
-		      ,const int Nlattice[DIM]
-		      );
-void Init_solute(Value &Concentration
-		 ,Particle *p
-		 );
-void Solute_solver_rhs_nonlinear_x_single(const Value grad_potential[DIM]
-					  ,const Value &concentration_x
-					  ,Value solute_flux[DIM]
-					  ,const double &valency_e
-					  ,const double &Onsager_coeff
-					  ,Value &omega_rhs
+void Solute_solver_rhs_nonlinear_x_single(double **grad_potential
+					  ,double *concentration_x
+					  ,double **solute_flux
+					  ,double &valency_e
+					  ,double &Onsager_coeff
+					  ,double *omega_rhs
 					  );
-void Add_advection_flux(Value solute_flux[DIM]
-			,const Value u_solvent[DIM]
-			,const Value &concentration_x
+void Add_advection_flux(double **solute_flux
+			,double **u_solvent
+			,double *concentration_x
 			);
-void Solute_impermeability(const Particle *p
-			   ,Value solute_flux_x[DIM]
-			   ,const Value surface_normal[DIM]
+void Solute_impermeability(Particle *p
+			   ,double **solute_flux_x
+			   ,double **surface_normal
 			   );
-double Count_single_solute(const Value &conc_x
-			  ,const Value &phi_p 
+double Count_single_solute(double *conc_x
+			  ,double *phi_p 
 			  );
 void Rescale_solute(double *rescale_factor
-		    ,const double *total_solute
-		    ,Value *conc_k
+		    ,double *total_solute
+		    ,double **conc_k
 		    ,Particle *p
-		    ,Value &phi_p // working memory
-		    ,Value &conc_x // working memory
+		    ,double *phi // working memory
+		    ,double *conc_x // working memory
 		    );
-void Diffusion_flux_single(Value diff_flux_x[DIM]
-			    ,const Value &conc_k
-			    ,const double &onsager_coeff
-			    ,Value &dmy_value // working memory
+void Diffusion_flux_single(double **diff_flux_x
+			    ,double *conc_k
+			    ,double &onsager_coeff
+			    ,double *dmy_value // working memory
 			   );
 inline void Count_solute_each(double *n_solute
-			      ,const Value *conc_k
+			      ,double **conc_k
 			       ,Particle *p
-			       ,Value &phi // working memory
-			       ,Value &dmy_value // working memory
+			       ,double *phi // working memory
+			       ,double *dmy_value // working memory
 			       ){
     Reset_phi(phi);
     Make_phi_particle(phi, p);

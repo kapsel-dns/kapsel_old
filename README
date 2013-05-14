@@ -9,4 +9,8 @@ Contents
 *.h/c/cxx:      source code
 udf/            udf define and sample input file
 
-Kapsel v1.0 - May 2006
+KAPSEL History:
+--------
+v2.1 - Mar 2011
+v2.0 - Aug 2009
+v1.0 - May 2006

@@ -1,5 +1,5 @@
 //
-// $Id: input.h,v 1.53 2006/06/08 05:52:33 nakayama Exp $
+// $Id: input.h,v 1.3 2006/11/14 20:07:12 nakayama Exp $
 //
 #ifndef INPUT_H
 #define INPUT_H
@@ -18,10 +18,6 @@
 
 /////////////////////
 /////////////////////
-extern int Lubrication_measurement;
-extern int Terminal_velocity_measurement;
-extern int DKT_measurement;
-extern int Check_PB;
 extern int Fixed_particle;
 /////////////////////
 /////////////////////
@@ -38,32 +34,35 @@ enum SW_time {
     AUTO, MANUAL
 };
 enum EQ {Navier_Stokes
-	 ,Qian_Sheng
-	 ,nematic_Allen_Cahn
-	 ,Olmsted_Goldbart
-	 ,Slippy_Navier_Stokes
 	 ,Shear_Navier_Stokes
+	 ,Shear_Navier_Stokes_Lees_Edwards
 	 ,Electrolyte
-	 ,Two_fluid
+};
+enum PT {spherical_particle
+	 ,chain
 };
 //////  
 extern SW_time SW_TIME;
 //////  
 extern EQ SW_EQ;
 extern char *EQ_name[];
+//////  
+extern PT SW_PT;
+extern char *PT_name[];
 //////  material parameters
 extern double RHO;
 extern double IRHO;
 extern double ETA;
 extern double kBT;
+extern double ikBT;
 extern double Shear_rate;
+extern double Shear_rate_eff;
+extern double Shear_strain_realized;
 extern double Shear_strain;
+extern double Shear_frequency;
+extern double Inertia_stress;
 extern int Shear_strain_int;
-extern int NY_shear;
-extern double LY_shear;
 extern double dev_shear_stress[];
-extern double &dev_shear_stress_total;
-extern double &dev_shear_stress_lub;
 extern double &dev_shear_stress_lj;
 extern double Delta_ETA;
 extern double Nu_ratio;
@@ -132,13 +131,7 @@ extern int &TRN_QS_Z;
 
 //////
 extern int ROTATION;
-extern int HYDRO_int;
 extern int STOKES;
-enum WALL_type {PBC,z_dirichlet};
-extern WALL_type WALL;
-extern double U_wall[DIM];
-extern const double A_radius_wall;
-extern double Radius_wall;
 extern int LJ_truncate;
 extern Particle_IC DISTRIBUTION;
 extern int N_iteration_init_distribution;
@@ -162,6 +155,8 @@ extern int G_direction;
 extern int Component_Number;
 extern int Particle_Number;
 extern int *Particle_Numbers;
+extern int *Beads_Numbers;
+extern int *Chain_Numbers;
 extern double VF;
 extern double VF_LJ;
 extern double Ivolume;
@@ -190,28 +185,6 @@ extern double Axel;
 extern double Tdump;
 extern double DT_noise;
 extern double DT;
-/////// nematics
-extern double A_LdG;
-extern double B_LdG;
-extern double C_LdG;
-extern double A_eq;
-extern double L1;
-extern double L2;
-extern double L1tilde;
-extern double L2tilde;
-extern double Q2S_prefactor;
-extern double IQ2S_prefactor;
-/////// Qian--Sheng viscosities
-extern double Beta_1;
-extern double Beta_4;
-extern double Beta_5;
-extern double Beta_6;
-extern double Beta_56;
-extern double Mu_1;
-extern double Mu_2;
-extern double Mu_2overMu_1_half;
-extern double One_overMu1;
-extern double Isotropic_viscosity;
 /////// Two_fluid
 extern double Mean_Bulk_concentration;
 extern int N_spec;
@@ -220,6 +193,7 @@ extern double Onsager_solute_coeff;
 extern int Poisson_Boltzmann;
 extern int External_field;
 extern int AC;
+extern int Shear_AC;
 extern double *Surface_charge;
 extern double *Surface_charge_e;
 extern double Elementary_charge;
@@ -235,13 +209,29 @@ extern double Debye_length;
 extern double E_ext[DIM];
 extern double Frequency;
 extern double Angular_Frequency;
+////// Temp Monitor
+
+extern double kT_snap_v; //fix R4A2
+extern double kT_snap_o; //fix R4A2
+
+extern double alpha_v;
+extern double alpha_o;
+
+//////shear_degree
+extern double degree_oblique;
 
 //////
 
-
 extern char *In_udf,*Sum_udf,*Out_udf,*Def_udf,*Ctrl_udf,*Res_udf;
-extern UDFManager *ufin, *ufout, *ufsum, *ufres;
+extern UDFManager *ufin, *ufout, *ufres;
+//extern UDFManager *ufsum;
 void file_get(const int argc, char *argv[]);
-void Gourmet_file_io(const char *infile,char *outfile,char *sumfile,char *deffile,char *ctrlfile,char *resfile);
+void Gourmet_file_io(const char *infile
+		     ,const char *outfile
+		     ,const char *sumfile
+		     ,const char *deffile
+		     ,const char *ctrlfile
+		     ,const char *resfile
+		     );
 
 #endif

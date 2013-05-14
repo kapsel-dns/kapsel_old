@@ -1,5 +1,5 @@
 //
-// $Id: avs_output_p.cxx,v 1.2 2005/08/02 10:08:29 nakayama Exp $
+// $Id: avs_output_p.cxx,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 #include "avs_output_p.h"
 

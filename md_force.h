@@ -1,5 +1,5 @@
 //
-// $Id: md_force.h,v 1.16 2005/09/13 06:38:58 nakayama Exp $
+// $Id: md_force.h,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 #ifndef MD_FORCE_H
 #define MD_FORCE_H
@@ -12,119 +12,130 @@
 
 extern double Min_rij;
 extern double Max_force;
-extern double Min_rij_wall;
-extern double Max_force_wall;
+extern double *Hydro_force;
 
 enum Particle_BC {
   PBC_particle
   ,Lees_Edwards
   ,Shear_hydro
 };
+
+void Add_f_gravity(Particle *p);
+void Calc_f_hydro_correct_precision(Particle *p, double **fp, const CTime &jikan);
+void Calc_f_hydro_correct_precision_OBL(Particle *p, double **fp, const CTime &jikan);
+double Calc_f_Lennard_Jones_shear_cap_primitive_lnk(Particle *p
+				       ,void (*distance0_func)(const double *x1,const double *x2,double &r12,double *x12)
+				      ,const double cap
+				       );
 double Calc_f_Lennard_Jones_shear_cap_primitive(Particle *p
 				       ,void (*distance0_func)(const double *x1,const double *x2,double &r12,double *x12)
 				      ,const double cap
 				       );
-double Calc_f_hydro_lubrication_shear_primitive(Particle *p
-						,void (*distance0_func)(const double *x1,const double *x2,double &r12,double *x12)
-						,const Particle_BC SW_BC);
-double Collison_time(Particle *p
-		     ,void (*distance0_func)(const double *x1,const double *x2,double &r12,double *x12)
-		     ,const Particle_BC sw_bc
-		     );
-
-void Add_f_gravity(Particle *p);
-void Calc_f_hydro_draining(Particle *p, const Value *fp, const CTime &jikan);
-void Calc_f_hydro_draining_shear(Particle *p, const Value *fp, const CTime &jikan);
-void Calc_f_hydro_correct(Particle *p, const Value *fp, const CTime &jikan);
-void Calc_particle_velocity(const Value &phi, const Value *up, Particle *p);
-
-void Calc_f_contanct_nonslip(Particle *p);
-void Calc_f_Coulomb_friction(Particle *p);
-void Calc_f_Lennard_Jones_wall_cap(Particle *p
-				   ,const int &dwall
-				   ,const double &a_radius_wall
-				   ,const double cap = 5.e2
-				   );
-
-/////
-inline double Collison_time_shear_hydro(Particle *p){
-  return
-    Collison_time(p,Distance0_shear_hydro,Shear_hydro);
-}
-inline void Calc_f_hydro_lubrication(Particle *p){
-  Calc_f_hydro_lubrication_shear_primitive(p,Distance0,PBC_particle);
-}
-inline double Calc_f_hydro_lubrication_shear(Particle *p){
-  return
-    Calc_f_hydro_lubrication_shear_primitive(p,Distance0_shear,Lees_Edwards);
-}
-inline double Calc_f_hydro_lubrication_shear_hydro(Particle *p){
-  return
-    Calc_f_hydro_lubrication_shear_primitive(p,Distance0_shear_hydro,Shear_hydro);
-}
-/////
-inline void Calc_f_Lennard_Jones_cap(Particle *p
-				     ,const double cap = 5.e2){
-  Calc_f_Lennard_Jones_shear_cap_primitive(p,Distance0,cap);
-}
-inline double Calc_f_Lennard_Jones_shear_cap(Particle *p
-					     ,const double cap = 5.e2){
-  return 
-    Calc_f_Lennard_Jones_shear_cap_primitive(p,Distance0_shear,cap);
-}
-
-inline double Calc_f_Lennard_Jones_shear_hydro_cap(Particle *p
-						   ,const double cap = 5.e2){
-  return 
-    Calc_f_Lennard_Jones_shear_cap_primitive(p, Distance0_shear_hydro, cap);
-}
 inline void Calc_f_Lennard_Jones(Particle *p){
-  Calc_f_Lennard_Jones_shear_cap_primitive(p,Distance0,DBL_MAX);
+//  Calc_f_Lennard_Jones_shear_cap_primitive(p,Distance0,DBL_MAX);
+    Calc_f_Lennard_Jones_shear_cap_primitive_lnk(p, Distance0, DBL_MAX);
 }
-inline double Calc_f_Lennard_Jones_shear(Particle *p){
-  return 
-    Calc_f_Lennard_Jones_shear_cap_primitive(p,Distance0_shear,DBL_MAX);
+inline double Calc_f_Lennard_Jones_OBL(Particle *p){
+    return Calc_f_Lennard_Jones_shear_cap_primitive(p, Distance0_OBL, DBL_MAX);
 }
-inline double Calc_f_Lennard_Jones_shear_hydro(Particle *p){
-  return 
-    Calc_f_Lennard_Jones_shear_cap_primitive(p, Distance0_shear_hydro, DBL_MAX);
-}
-/////
-inline void Calc_f_Lennard_Jones_wall(Particle *p
-				      ,const int &dwall
-				      ,const double &a_radius_wall
-				      ){
-  Calc_f_Lennard_Jones_wall_cap(p,dwall,a_radius_wall,DBL_MAX);
-}
-inline void Calc_f_Lennard_Jones_zwall(Particle *p){
-  Calc_f_Lennard_Jones_wall_cap(p,2,Radius_wall,DBL_MAX);
-}
-inline void Calc_f_Lennard_Jones_shear_wall(Particle *p){
-  Calc_f_Lennard_Jones_wall_cap(p,1,0.,DBL_MAX);
-}
-inline void Calc_f_Lennard_Jones_shear_wall_cap(Particle *p
-						,const double cap = 5.e2
-						){
-  Calc_f_Lennard_Jones_wall_cap(p,1,0.,cap);
-}
-/////
-
-const double harmonic_spring_cst=1.0; 
-inline void Calc_harmonic_force(Particle *p){
-    const double harmonic_eq[DIM]={HL_particle[0], HL_particle[1], HL_particle[2]};
-    int n=0;
-    for(int d=0; d < DIM; d++ ){ 
-	p[n].fr[d] += -harmonic_spring_cst * (p[n].x[d]- harmonic_eq[d]);
+inline void Calc_anharmonic_force_chain(Particle *p){
+    double anharmonic_spring_cst=30.*EPSILON/SQ(SIGMA);
+    const double R0=1.5*SIGMA;
+    const double iR0=1./R0;
+    const double iR02=SQ(iR0);
+    
+    int rest_Chain_Number[Component_Number];
+    for (int i = 0; i < Component_Number; i++) {
+	rest_Chain_Number[i] = Chain_Numbers[i];
+//	fprintf(stderr,"### rest_p_num %d %d\n", i, rest_Chain_Number[i]);
     }
-} 
-inline void Calc_harmonic_energy(const Particle *p, double energy[DIM]){
-    const double harmonic_eq[DIM]={HL_particle[0], HL_particle[1], HL_particle[2]};
+    
+    int n = 0;
 
-    const double dmy = harmonic_spring_cst * 0.5;
-    int n=0;
-    for(int d=0; d < DIM; d++ ){ 
-	energy[d] = dmy * SQ(p[n].x[d]- harmonic_eq[d]);
-	//fprintf(stderr, "%g %g\n", p[n].x[d], harmonic_eq[d]);
+    while (n < Particle_Number - 1) {
+	for (int i = 0; i < Component_Number; i++) {
+	    if (rest_Chain_Number[i] > 0) {
+		for (int j = 0; j < Beads_Numbers[i]; j++) {
+		    //fprintf(stderr,"### anharmonic %d\n", j);
+		    if (j < Beads_Numbers[i] - 1) {
+			int m = n + 1;
+			double dmy_r1[3];
+			for(int d=0; d<DIM ;d++){
+			    dmy_r1[d]=p[n].x[d]-p[m].x[d];
+			    dmy_r1[d] -= (double)Nint(dmy_r1[d]/L_particle[d])*L_particle[d];
+			}
+			double dm_r1=SQ(dmy_r1[0])+SQ(dmy_r1[1])+SQ(dmy_r1[2]);
+			double dm1=1./(1. - dm_r1*iR02);
+			
+			if(dm1 < 0.0){
+			    fprintf(stderr,"### anharmonic error\n");
+			}
+			
+			for(int d=0; d<DIM; d++){
+			    double dmy=dm1*dmy_r1[d];
+			    p[n].fr[d] += -anharmonic_spring_cst*dmy;
+			    p[m].fr[d] += anharmonic_spring_cst*dmy;
+			}
+		    }
+		    n++;
+		}
+		rest_Chain_Number[i]--;
+	    }
+	}
     }
-} 
+}
+
+inline double Calc_anharmonic_force_chain_OBL(Particle *p){
+    double anharmonic_spring_cst=30.*EPSILON/SQ(SIGMA);
+    const double R0=1.5*SIGMA;
+    const double iR0=1./R0;
+    const double iR02=SQ(iR0);
+    
+    int rest_Chain_Number[Component_Number];
+    for (int i = 0; i < Component_Number; i++) {
+	rest_Chain_Number[i] = Chain_Numbers[i];
+//	fprintf(stderr,"### rest_p_num %d %d\n", i, rest_Chain_Number[i]);
+    }
+    
+    int n = 0;
+    double shear_stress = 0.0;
+    while (n < Particle_Number - 1) {
+	for (int i = 0; i < Component_Number; i++) {
+	    if (rest_Chain_Number[i] > 0) {
+		for (int j = 0; j < Beads_Numbers[i]; j++) {
+		    //fprintf(stderr,"### anharmonic %d\n", j);
+		    if (j < Beads_Numbers[i] - 1) {
+			int m = n + 1;
+			double dmy_r1[DIM];
+			double dm_r1 = 0.0;
+			Distance0_OBL(p[m].x, p[n].x, dm_r1, dmy_r1);
+			/*
+			for(int d=0; d<DIM ;d++){
+			    dmy_r1[d]=p[n].x[d]-p[m].x[d];
+			    dmy_r1[d] -= (double)Nint(dmy_r1[d]/L_particle[d])*L_particle[d];
+			}
+			double dm_r1=SQ(dmy_r1[0])+SQ(dmy_r1[1])+SQ(dmy_r1[2]);
+			*/
+			double dm1=1./(1. - dm_r1*iR02);
+			
+			if(dm1 < 0.0){
+			    fprintf(stderr,"### anharmonic error\n");
+			}
+			
+			for(int d=0; d<DIM; d++){
+			    double dmy=dm1*dmy_r1[d];
+			    p[n].fr[d] += -anharmonic_spring_cst*dmy;
+			    p[m].fr[d] += anharmonic_spring_cst*dmy;
+			}
+			shear_stress +=
+			    ((-anharmonic_spring_cst * dm1 * dmy_r1[0])* (dmy_r1[1]));
+		    }
+		    n++;
+		}
+		rest_Chain_Number[i]--;
+	    }
+	}
+    }
+    return shear_stress;
+}
 #endif

@@ -1,5 +1,5 @@
 //
-// $Id: operate_electrolyte.h,v 1.10 2006/05/15 09:43:39 kin Exp $
+// $Id: operate_electrolyte.h,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 #ifndef OPERATE_ELECTROLYTE_H
 #define OPERATE_ELECTROLYTE_H
@@ -20,49 +20,39 @@ const double TOL = 1.e-4;
 
 extern double *Total_solute;
 
-void Init_rho_ion(Value *Concentration, Particle *p, CTime &jikan);
+void Init_rho_ion(double **Concentration, Particle *p, CTime &jikan);
 
 void Mem_alloc_charge(void);
-void Calc_free_energy_PB(const Value *conc_k
+void Calc_free_energy_PB(double **conc_k
 			  ,Particle *p
 			  ,double *free_energy
-			  ,Value &phi // working memory
-			  ,Value &charge_density // working memory
-			  ,Value &dmy_value // working memory
+			  ,double *phi // working memory
+			  ,double *charge_density // working memory
+			  ,double *dmy_value // working memory
 			  ,const CTime &jikan
 			  );
-void Make_phi_qq_particle(Value &phi
-			   ,Value &surface
-			   ,const Particle *p);
-void Make_phi_qq_fixed_particle(Value &phi
-			   ,Value &surface
-			   ,const Particle *p);
-void Calc_Coulomb_potential_k_PBC(const Particle *p
-				   ,const Value *conc_k
-				   ,Value &potential
-				   ,Value &charge_density
-				   ,Value &phi // working memory
-				   );
-double Total_ion_charge(const Value *conc_k
-			 ,Particle *p
-			 ,Value &phi // working memory
-			 ,Value &dmy_value // working memory
-			 );
-void Make_Coulomb_force_x_on_fluid(Value force[DIM]
-				    ,const Particle *p
-				    ,const Value *conc_k
-				    ,Value &charge_density // working memory
-				    ,Value &potential // working memory
+void Make_phi_qq_particle(double *phi
+			   ,double *surface
+			   ,Particle *p);
+void Make_phi_qq_fixed_particle(double *phi
+			   ,double *surface
+			   ,Particle *p);
+void Make_Coulomb_force_x_on_fluid(double **force
+				    ,Particle *p
+				    ,double **conc_k
+				    ,double *charge_density // working memory
+				    ,double *potential // working memory
 				    ,const CTime &jikan
 				    );
 
-void Conc_k2charge_field(const Particle *p
-			 ,const Value *conc_k
-			 ,Value &charge_density
-			 ,Value &phi // working memory
-			 ,Value &dmy_value // working memory
+void Conc_k2charge_field(Particle *p
+			 ,double **conc_k
+			 ,double *charge_density
+			 ,double *phi // working memory
+			 ,double *dmy_value // working memory
 			 );
-void Charge_field_k2Coulomb_potential_k_PBC(Value &potential);
+
+void Charge_field_k2Coulomb_potential_k_PBC(double *potential);
 
 #endif
 

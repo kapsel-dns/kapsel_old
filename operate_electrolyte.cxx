@@ -1,5 +1,5 @@
 //
-// $Id: operate_electrolyte.cxx,v 1.17 2006/06/09 01:38:35 nakayama Exp $
+// $Id: operate_electrolyte.cxx,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 #include "operate_electrolyte.h"
 
@@ -9,7 +9,7 @@ double Counterion_number;
 double *Valency;
 double *Onsager_coeff;
 
-inline void Add_external_electric_field_x(Value &potential
+inline void Add_external_electric_field_x(double *potential
 					  ,const CTime &jikan
 					  ){
   double external[DIM];
@@ -17,14 +17,17 @@ inline void Add_external_electric_field_x(Value &potential
     external[d] = E_ext[d];
     if(AC){
       double time = jikan.time;
-      external[d] *= sin( Angular_Frequency * time);
+      external[d] = sin( Angular_Frequency * time);
     }
   }
 
+	int im;
+#pragma omp parallel for schedule(dynamic, 1) private(im)
   for(int i=0;i<NX;i++){
     for(int j=0;j<NY;j++){
       for(int k=0;k<NZ;k++){
-	potential[i][j][k] -= (
+		im=(i*NY*NZ_)+(j*NZ_)+k;
+	potential[im] -= (
 			       (external[0] * (double)i 
 				+ external[1] * (double)j 
 				+ external[2] * (double)k
@@ -35,77 +38,56 @@ inline void Add_external_electric_field_x(Value &potential
   }
 
 }
-void Conc_k2charge_field(const Particle *p
-			 ,const Value *conc_k
-			 ,Value &charge_density
-			 ,Value &phi_p // working memory
-			 ,Value &dmy_value // working memory
+void Conc_k2charge_field(Particle *p
+			 ,double **conc_k
+			 ,double *charge_density
+			 ,double *phi_p // working memory
+			 ,double *dmy_value // working memory
 			 ){
   {
     Reset_phi(phi_p);
     Reset_phi(charge_density);
     Make_phi_qq_particle(phi_p, charge_density, p);
+	int im;
+	double dmy_phi;
+	double dmy_conc;
+
     for(int n=0;n< N_spec;n++){
       A_k2a_out(conc_k[n], dmy_value);
+#pragma omp parallel for schedule(dynamic, 1) private(im,dmy_phi,dmy_conc)
       for(int i=0;i<NX;i++){
-	for(int j=0;j<NY;j++){
+	  for(int j=0;j<NY;j++){
 	  for(int k=0;k<NZ;k++){
-	    double dmy_phi = phi_p[i][j][k];
-	    double dmy_conc = dmy_value[i][j][k];
-	    charge_density[i][j][k] += Valency_e[n] * dmy_conc * (1.- dmy_phi);
+		im=(i*NY*NZ_)+(j*NZ_)+k;
+	    dmy_phi = phi_p[im];
+	    dmy_conc = dmy_value[im];
+	    charge_density[im] += Valency_e[n] * dmy_conc * (1.- dmy_phi);
 	  }
 	}
       }
     }
   }
 }
-void Charge_field_k2Coulomb_potential_k_PBC(Value &potential){
+
+void Charge_field_k2Coulomb_potential_k_PBC(double *potential){
   const double iDielectric_cst = 1./Dielectric_cst;
+  int im;
+#pragma omp parallel for schedule(dynamic, 1) private(im)
   for(int i=0;i<NX;i++){
     for(int j=0;j<NY;j++){
       for(int k=0;k<NZ_;k++){
-	potential[i][j][k] *= (IK2[i][j][k] * iDielectric_cst);
+	im=(i*NY*NZ_)+(j*NZ_)+k;
+	potential[im] *= (IK2[im] * iDielectric_cst);
       }
     }
   }
 }
 
-void Calc_Coulomb_potential_k_PBC(const Particle *p
-				   ,const Value *conc_k
-				   ,Value &potential
-				   ,Value &charge_density
-				   ,Value &phi // working memory
-				   ){
-  Conc_k2charge_field(p, conc_k, charge_density, phi, potential);
-  
-  {
-    A2a_k_out(charge_density, potential);
-
-    Charge_field_k2Coulomb_potential_k_PBC(potential);
-  }
-}
-double Total_ion_charge(const Value *conc_k
-			 ,Particle *p
-			 ,Value &phi // working memory
-			 ,Value &dmy_value // working memory
-			 ){
-  //double asum[N_spec];
-  double *asum = new double[N_spec];
-  Count_solute_each(asum, conc_k, p, phi, dmy_value);
-  
-  double dmy = 0.0;
-  for(int n=0;n < N_spec;n++){
-    dmy += asum[n] * Valency_e[n];
-  }
-
-  delete [] asum;
-  return dmy;
-}
-void Make_Coulomb_force_x_on_fluid(Value force[DIM]
-				    ,const Particle *p
-				    ,const Value *conc_k
-				    ,Value &charge_density // working memory
-				    ,Value &potential // working memory
+void Make_Coulomb_force_x_on_fluid(double **force
+				    ,Particle *p
+				    ,double **conc_k
+				    ,double *charge_density // working memory
+				    ,double *potential // working memory
 				    ,const CTime &jikan
 				    ){
   Conc_k2charge_field(p, conc_k, charge_density, force[0], force[1]);
@@ -122,11 +104,11 @@ void Make_Coulomb_force_x_on_fluid(Value force[DIM]
     for(int n=0;n<N_spec;n++){
       A_k2a_out(conc_k[n],potential);
       for(int i=0; i<NX; i++){
-	for(int j=0; j<NY; j++){
+	  for(int j=0; j<NY; j++){
 	  for(int k=0; k<NZ; k++){
-	    double dmy_phi = phi[i][j][k];
-	    double dmy_conc = potential[i][j][k];
-	    charge_density[i][j][k] += Valency_e[n] * dmy_conc * (1.- dmy_phi);
+	    double dmy_phi = phi[(i*NY*NZ_)+(j*NZ_)+k];
+	    double dmy_conc = potential[(i*NY*NZ_)+(j*NZ_)+k];
+	    charge_density[(i*NY*NZ_)+(j*NZ_)+k] += Valency_e[n] * dmy_conc * (1.- dmy_phi);
 	  }
 	}
       }
@@ -138,30 +120,61 @@ void Make_Coulomb_force_x_on_fluid(Value force[DIM]
     external[d] = E_ext[d];
     if(AC){
       double time = jikan.time;
-      external[d] *= sin( Angular_Frequency * time);
+      external[d] = sin( Angular_Frequency * time);
     }
   }
-
-  for(int d=0;d<DIM;d++){
+  int im;
+  double electric_field;
+#pragma omp parallel
+  {
+//#pragma omp parallel for schedule(dynamic, 1) private(im,electric_field)
+#pragma omp  for schedule(dynamic, 1) private(im,electric_field)
     for(int i=0;i<NX;i++){
       for(int j=0;j<NY;j++){
-	for(int k=0;k<NZ;k++){
-	  double electric_field = -force[d][i][j][k];
+	  for(int k=0;k<NZ;k++){
+	  im=(i*NY*NZ_)+(j*NZ_)+k;
+	  electric_field = -force[0][im];
 	  if(External_field){
-	    electric_field += external[d];
+	   electric_field += external[0];
 	  }
-	  force[d][i][j][k] = charge_density[i][j][k] * electric_field; 
-	}
+	  force[0][im] = charge_density[im] * electric_field; 
+	  }
+      }
+    }
+//#pragma omp parallel for schedule(dynamic, 1) private(im,electric_field)
+#pragma omp  for schedule(dynamic, 1) private(im,electric_field)
+    for(int i=0;i<NX;i++){
+      for(int j=0;j<NY;j++){
+	  for(int k=0;k<NZ;k++){
+	  im=(i*NY*NZ_)+(j*NZ_)+k;
+	  electric_field = -force[1][im];
+	  if(External_field){
+	   electric_field += external[1];
+	  }
+	  force[1][im] = charge_density[im] * electric_field; 
+	  }
+      }
+    }
+//#pragma omp parallel for schedule(dynamic, 1) private(im,electric_field)
+#pragma omp for schedule(dynamic, 1) private(im,electric_field)
+    for(int i=0;i<NX;i++){
+      for(int j=0;j<NY;j++){
+	  for(int k=0;k<NZ;k++){
+	  im=(i*NY*NZ_)+(j*NZ_)+k;
+	  electric_field = -force[2][im];
+	  if(External_field){
+	   electric_field += external[2];
+	  }
+	  force[2][im] = charge_density[im] * electric_field; 
+	  }
       }
     }
   }
 }
-void Make_phi_qq_particle(Value &phi
-			   ,Value &surface
-			   ,const Particle *p){
-  //static const double xi_surface = 2.*DX;
-  //static const double radius_surface = RADIUS - xi_surface*.5;//in
-  //static const double radius_surface = (RADIUS+HXI) - xi_surface*.5;//sin
+
+void Make_phi_qq_particle(double *phi
+			   ,double *surface
+			   ,Particle *p){
 
   double abs_total_surface_charge = 0.;
   for(int n=0; n < Particle_Number; n++){
@@ -190,44 +203,43 @@ void Make_phi_qq_particle(Value &phi
       }
       double dmy = Distance(x, xp);
       double dmy_phi= Phi(dmy);
-      //      double dmy_Dphi= -DPhi_tanh(dmy);
       double dmy_Dphi= DPhi_compact_sin(dmy);
-      //
-      //double dmy_Dphi= DPhi_compact_sin(dmy, RADIUS, xi_surface);//ON
-      //double dmy_Dphi= DPhi_compact_sin(dmy, radius_surface, xi_surface);//in,sin
-      //
-      //      double dmy_Dphi= DPhi_compact(dmy);
-      phi[r_mesh[0]][r_mesh[1]][r_mesh[2]] += dmy_phi;
-      surface[r_mesh[0]][r_mesh[1]][r_mesh[2]] += dmy_surface_charge * dmy_Dphi;
+
+      phi[(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += dmy_phi;
+      surface[(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += dmy_surface_charge * dmy_Dphi;
     }
     abs_total_surface_charge += fabs(dmy_surface_charge);
   }
   {// volume of surface section is normalized to unity
     double dmy = 0.0;
+	int im;
+#pragma omp parallel for schedule(dynamic, 1) reduction(+:dmy) private(im)
     for(int i=0; i<NX; i++){
       for(int j=0; j<NY; j++){
-	for(int k=0; k<NZ; k++){
-	  dmy += fabs(surface[i][j][k]);
-	}
+	  for(int k=0; k<NZ; k++){
+	  //int im=(i*NY*NZ_)+(j*NZ_)+k;
+	  im=(i*NY*NZ_)+(j*NZ_)+k;
+	  dmy += fabs(surface[im]);
+	  }
       }
     }
     double rescale = abs_total_surface_charge / (dmy * DX3);
-    //  fprintf(stderr,"# integral surface  %g\n", dmy*DX3);
+#pragma omp parallel for schedule(dynamic, 1) private(im)
     for(int i=0; i<NX; i++){
       for(int j=0; j<NY; j++){
-	for(int k=0; k<NZ; k++){
-	  surface[i][j][k] *= rescale; 
-	}
+	  for(int k=0; k<NZ; k++){
+	  //int im=(i*NY*NZ_)+(j*NZ_)+k;
+	  im=(i*NY*NZ_)+(j*NZ_)+k;
+	  surface[im] *= rescale; 
+	  }
       }
     }
   }
 }
-void Make_phi_qq_fixed_particle(Value &phi
-			   ,Value &surface
-			   ,const Particle *p){
-  //static const double xi_surface = 2.*DX;
-  //static const double radius_surface = RADIUS - xi_surface*.5;
-  //static const double radius_surface = (RADIUS+HXI) - xi_surface*.5;
+
+void Make_phi_qq_fixed_particle(double *phi
+			   ,double *surface
+			   ,Particle *p){
 
   double abs_total_surface_charge = 0.;
   for(int n=0; n < Particle_Number; n++){
@@ -256,15 +268,10 @@ void Make_phi_qq_fixed_particle(Value &phi
       }
       double dmy = Distance(x, xp);
       double dmy_phi= Phi(dmy);
-      //      double dmy_Dphi= -DPhi_tanh(dmy);
       double dmy_Dphi= DPhi_compact_sin(dmy);
-      //
-      //double dmy_Dphi= DPhi_compact_sin(dmy, RADIUS, xi_surface);
-      //double dmy_Dphi= DPhi_compact_sin(dmy, radius_surface, xi_surface);
-      //
-      //      double dmy_Dphi= DPhi_compact(dmy);
-      phi[r_mesh[0]][r_mesh[1]][r_mesh[2]] += dmy_phi;
-      surface[r_mesh[0]][r_mesh[1]][r_mesh[2]] += dmy_surface_charge * dmy_Dphi;
+
+      phi[(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += dmy_phi;
+      surface[(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += dmy_surface_charge * dmy_Dphi;
     }
     abs_total_surface_charge += fabs(dmy_surface_charge);
   }
@@ -273,7 +280,7 @@ void Make_phi_qq_fixed_particle(Value &phi
     for(int i=0; i<NX; i++){
       for(int j=0; j<NY; j++){
 	for(int k=0; k<NZ; k++){
-	  dmy += fabs(surface[i][j][k])*phi[i][j][k];
+	  dmy += fabs(surface[(i*NY*NZ_)+(j*NZ_)+k])*phi[(i*NY*NZ_)+(j*NZ_)+k];
 	}
       }
     }
@@ -282,23 +289,26 @@ void Make_phi_qq_fixed_particle(Value &phi
     for(int i=0; i<NX; i++){
       for(int j=0; j<NY; j++){
 	for(int k=0; k<NZ; k++){
-	  surface[i][j][k] *= rescale; 
+	  surface[(i*NY*NZ_)+(j*NZ_)+k] *= rescale; 
 	}
       }
     }
   }
 }
-void Calc_free_energy_PB(const Value *conc_k
+void Calc_free_energy_PB(double **conc_k
 			  ,Particle *p
 			  ,double *free_energy
-			  ,Value &phi // working memory
-			  ,Value &charge_density // working memory
-			  ,Value &dmy_value // working memory
+			  ,double *phi // working memory
+			  ,double *charge_density // working memory
+			  ,double *dmy_value // working memory
 			  ,const CTime &jikan
 			  ){
 
   double free_energy_ideal = 0.;
   double free_energy_electrostatic = 0.;
+  int im;
+  double dmy_conc;
+  double dmy_phi;
 
   {
     Reset_phi(phi);
@@ -306,28 +316,16 @@ void Calc_free_energy_PB(const Value *conc_k
     
     for(int n=0;n< N_spec;n++){
       A_k2a_out(conc_k[n], dmy_value);
+#pragma omp parallel for schedule(dynamic, 1) reduction(+:free_energy_ideal) private(im,dmy_conc,dmy_phi)
       for(int i=0;i<NX;i++){
-	for(int j=0;j<NY;j++){
+	  for(int j=0;j<NY;j++){
 	  for(int k=0;k<NZ;k++){
-	    double dmy_conc = dmy_value[i][j][k];
-	    double dmy_phi = phi[i][j][k];
-	    if(dmy_conc <= 0.0){
-	      if(0){
-		double x[DIM];
-		x[0] = (double)i*DX;
-		x[1] = (double)j*DX;
-		x[2] = (double)k*DX;
-		double dmy = Distance(x, p[0].x);
-		if(dmy > RADIUS-HXI){
-		  fprintf(stderr, "#%d %d %d %g (%g:%g)\n"
-			  ,i,j,k,dmy_conc,dmy, RADIUS);
-		}
-	      }
-	    }else {
-	      free_energy_ideal += (1.- dmy_phi) * dmy_conc * (log(dmy_conc)-1.);
-	    }
+		im=(i*NY*NZ_)+(j*NZ_)+k;
+	    dmy_conc = dmy_value[im];
+	    dmy_phi = phi[im];
+	    free_energy_ideal += (1.- dmy_phi) * dmy_conc * (log(dmy_conc)-1.);
 	  }
-	}
+	  }
       }
     }
     free_energy_ideal *= (kBT * DX3);
@@ -338,21 +336,27 @@ void Calc_free_energy_PB(const Value *conc_k
       A2a_k_out(charge_density, dmy_value);
       Charge_field_k2Coulomb_potential_k_PBC(dmy_value);
       A_k2a(dmy_value);
+
+#pragma omp parallel for schedule(dynamic, 1) private(im)
       for(int i=0;i<NX;i++){
-	for(int j=0;j<NY;j++){
+	  for(int j=0;j<NY;j++){
 	  for(int k=0;k<NZ;k++){
-	    dmy_value[i][j][k] *= 0.5;
+		im=(i*NY*NZ_)+(j*NZ_)+k;
+	    dmy_value[im] *= 0.5;
 	  }
-	}
+	  }
       }
+
       if(External_field){
 	Add_external_electric_field_x(dmy_value, jikan);
       }
     }
+#pragma omp parallel for schedule(dynamic, 1) reduction(+:free_energy_electrostatic) private(im)
     for(int i=0;i<NX;i++){
       for(int j=0;j<NY;j++){
-	for(int k=0;k<NZ;k++){
-	  free_energy_electrostatic += charge_density[i][j][k] * dmy_value[i][j][k];
+	  for(int k=0;k<NZ;k++){
+		im=(i*NY*NZ_)+(j*NZ_)+k;
+	  free_energy_electrostatic += charge_density[im] * dmy_value[im];
 	}
       }
     }
@@ -365,7 +369,7 @@ void Calc_free_energy_PB(const Value *conc_k
 
 }
 
-inline void Set_steadystate_ion_density(Value *Concentration
+inline void Set_steadystate_ion_density(double **Concentration
 					 ,Particle *p
 					 ,CTime &jikan){
   double free_energy[3];
@@ -405,7 +409,7 @@ inline void Set_steadystate_ion_density(Value *Concentration
   }
 }
 
-inline void Set_uniform_ion_charge_density_nosalt(Value &Concentration
+inline void Set_uniform_ion_charge_density_nosalt(double *Concentration
 					    ,double *Total_solute
 					    ,Particle *p){
   if(N_spec != 1){//N_spec = 1 にかぎることに注意
@@ -416,20 +420,23 @@ inline void Set_uniform_ion_charge_density_nosalt(Value &Concentration
   Make_phi_particle(phi,p);
   
   double volume_phi = 0.;
+  double dmy_phi;
+#pragma omp parallel for schedule(dynamic, 1) reduction(+:volume_phi) private(dmy_phi)
   for(int i=0;i<NX;i++){
     for(int j=0;j<NY;j++){
       for(int k=0;k<NZ;k++){
-	double dmy_phi = phi[i][j][k];
+	dmy_phi = phi[(i*NY*NZ_)+(j*NZ_)+k];
 	volume_phi += (1.-dmy_phi);
       }
     }
   }
 
   double Counterion_density = Counterion_number / (volume_phi * DX3);
+#pragma omp parallel for schedule(dynamic, 1) private(Counterion_density)
   for(int i=0;i<NX;i++){
     for(int j=0;j<NY;j++){
       for(int k=0;k<NZ;k++){
-	Concentration[i][j][k] = Counterion_density;
+	Concentration[(i*NY*NZ_)+(j*NZ_)+k] = Counterion_density;
       }
     }
   }
@@ -438,7 +445,7 @@ inline void Set_uniform_ion_charge_density_nosalt(Value &Concentration
   A2a_k(Concentration);
 }
 
-inline void Set_Poisson_Boltzmann_ion_charge_density_nosalt(Value *Concentration
+inline void Set_Poisson_Boltzmann_ion_charge_density_nosalt(double **Concentration
 						      ,double *Total_solute
 						      ,Particle *p){
   if(N_spec != 1){//N_spec = 1 にかぎることに注意
@@ -453,7 +460,7 @@ inline void Set_Poisson_Boltzmann_ion_charge_density_nosalt(Value *Concentration
   double alp=0.01;//0.001;//0.1;
   
   double dmy1 = Valency[0] * Elementary_charge / kBT;
-  Value e_potential = up[2];
+  double *e_potential = up[2];
   for(int m=1;m<STEP;m++){
     {
       Conc_k2charge_field(p, Concentration, e_potential, up[0], up[1]);
@@ -461,16 +468,15 @@ inline void Set_Poisson_Boltzmann_ion_charge_density_nosalt(Value *Concentration
       Charge_field_k2Coulomb_potential_k_PBC(e_potential);
     }
     A_k2a(e_potential);
-    //    if(External_field){
-    //      Add_external_electric_field_x(e_potential, jikan);
-    //    }
     
     double rho_0 = 0.;
+ 	double dmy_phi;
+#pragma omp parallel for schedule(dynamic, 1) reduction(+:rho_0) private(dmy_phi)
     for(int i=0;i<NX;i++){
       for(int j=0;j<NY;j++){
- 	for(int k=0;k<NZ;k++){
- 	  double dmy_phi = phi[i][j][k];
- 	  rho_0 += (1.-dmy_phi) * exp( - dmy1 * e_potential[i][j][k] );
+ 	  for(int k=0;k<NZ;k++){
+ 	  dmy_phi = phi[(i*NY*NZ_)+(j*NZ_)+k];
+ 	  rho_0 += (1.-dmy_phi) * exp( - dmy1 * e_potential[(i*NY*NZ_)+(j*NZ_)+k] );
  	}
       }
     }
@@ -481,33 +487,29 @@ inline void Set_Poisson_Boltzmann_ion_charge_density_nosalt(Value *Concentration
     double error=0.;
     for(int i=0;i<NX;i++){
       for(int j=0;j<NY;j++){
- 	for(int k=0;k<NZ;k++){
- 	  double dmy = rho_0 * exp ( - dmy1 * e_potential[i][j][k] );
- 	  Concentration[0][i][j][k] = (1.-alp) * Concentration[0][i][j][k] + alp * dmy;
+ 	  for(int k=0;k<NZ;k++){
+ 	  double dmy = rho_0 * exp ( - dmy1 * e_potential[(i*NY*NZ_)+(j*NZ_)+k] );
+ 	  Concentration[0][(i*NY*NZ_)+(j*NZ_)+k] = (1.-alp) * Concentration[0][(i*NY*NZ_)+(j*NZ_)+k] + alp * dmy;
  	  sum=sum+fabs(dmy);
- 	  error=error+fabs(Concentration[0][i][j][k]-dmy);
+ 	  error=error+fabs(Concentration[0][(i*NY*NZ_)+(j*NZ_)+k]-dmy);
  	}
       }
-    }
+	}
     A2a_k(Concentration[0]);
-    //    double ion_density = Total_ion_charge(Concentration, p);
     {
-      //double rescale_factor[N_spec];
       double *rescale_factor = new double[N_spec];
       Rescale_solute(rescale_factor
 		     ,Total_solute
 		     ,Concentration, p, up[0], up[1]);
       delete [] rescale_factor;
     }
-    //    fprintf(stderr,"# check the convergence  %d %g %g\n", m,error/sum,rescale_factor[0]);
     if(error/sum < TOL) break;
   }
   
   A_k2a_out(Concentration[0], up[0]);
   Total_solute[0] = Count_single_solute(up[0], phi);
 }
-
-inline void Set_uniform_ion_charge_density_salt(Value *Concentration
+inline void Set_uniform_ion_charge_density_salt(double **Concentration
 					  ,double *Total_solute
 					  ,Particle *p){
   if(N_spec != 2){//N_spec = 2 にかぎることに注意
@@ -529,30 +531,33 @@ inline void Set_uniform_ion_charge_density_salt(Value *Concentration
       negative_ion_number += fabs(dmy_surface_charge * dmy_particle_number / Valency[1]);
     }
   }
-  //  fprintf(stderr,"# ion_number  %g %g\n", positive_ion_number,negative_ion_number);
   double volume_phi = 0.;
+  double dmy_phi;
+  int im;
+#pragma omp parallel for schedule(dynamic, 1) reduction(+:volume_phi) private(dmy_phi,im)
   for(int i=0;i<NX;i++){
     for(int j=0;j<NY;j++){
       for(int k=0;k<NZ;k++){
-	double dmy_phi = phi[i][j][k];
+    im=(i*NY*NZ_)+(j*NZ_)+k;
+	dmy_phi = phi[im];
 	volume_phi += (1.-dmy_phi);
       }
     }
   }
   double positive_ion_density = positive_ion_number / (volume_phi * DX3);
   double negative_ion_density = negative_ion_number / (volume_phi * DX3);
-  //  fprintf(stderr,"# ion_density  %g %g\n", positive_ion_density,negative_ion_density);
   
-  //仕込みのイオン濃度(正イオン, 負イオン濃度: Rho_inf_positiveion, Rho_inf_negative)
   double Rho_inf = kBT * Dielectric_cst / SQ(Elementary_charge * Debye_length);
   double Rho_inf_positive_ion=Rho_inf/(Valency[0]*(Valency[0]-Valency[1]));
   double Rho_inf_negative_ion=-Rho_inf/(Valency[1]*(Valency[0]-Valency[1]));
 
+#pragma omp parallel for schedule(dynamic, 1) 
   for(int i=0;i<NX;i++){
     for(int j=0;j<NY;j++){
       for(int k=0;k<NZ;k++){
-	Concentration[0][i][j][k] = positive_ion_density + Rho_inf_positive_ion;
-	Concentration[1][i][j][k] = negative_ion_density + Rho_inf_negative_ion;
+		int im=(i*NY*NZ_)+(j*NZ_)+k;
+	Concentration[0][im] = positive_ion_density + Rho_inf_positive_ion;
+	Concentration[1][im] = negative_ion_density + Rho_inf_negative_ion;
       }
     }
   }
@@ -565,7 +570,7 @@ inline void Set_uniform_ion_charge_density_salt(Value *Concentration
   fprintf(stderr,"# density of positive and negative ions %g %g\n", positive_ion_density + Rho_inf_positive_ion,negative_ion_density + Rho_inf_negative_ion);
 }
 
-inline void Set_Poisson_Boltzmann_ion_charge_density_salt(Value *Concentration
+inline void Set_Poisson_Boltzmann_ion_charge_density_salt(double **Concentration
 						    ,double *Total_solute
 						    ,Particle *p){
   if(N_spec != 2){//N_spec = 2 にかぎることに注意
@@ -591,10 +596,10 @@ inline void Set_Poisson_Boltzmann_ion_charge_density_salt(Value *Concentration
   
   Reset_phi(phi);
   Make_phi_particle(phi, p);
-  Value e_potential0 = up[0];
-  Value e_potential1 = up[1];
-  Value dmy_value0 = f_particle[0];
-  Value dmy_value1 = f_particle[1];
+  double *e_potential0 = up[0];
+  double *e_potential1 = up[1];
+  double *dmy_value0 = f_particle[0];
+  double *dmy_value1 = f_particle[1];
   Reset_phi(e_potential0);
   
   for(int m=1;m<STEP;m++){
@@ -603,9 +608,10 @@ inline void Set_Poisson_Boltzmann_ion_charge_density_salt(Value *Concentration
     for(int i=0;i<NX;i++){
       for(int j=0;j<NY;j++){
  	for(int k=0;k<NZ;k++){
- 	  double dmy_phi = phi[i][j][k];
- 	  dmy_rho_positive_ion += (1.-dmy_phi) * exp( - dmy0 * e_potential0[i][j][k] );
- 	  dmy_rho_negative_ion += (1.-dmy_phi) * exp( - dmy1 * e_potential0[i][j][k] );
+		int im=(i*NY*NZ_)+(j*NZ_)+k;
+ 	  double dmy_phi = phi[im];
+ 	  dmy_rho_positive_ion += (1.-dmy_phi) * exp( - dmy0 * e_potential0[im] );
+ 	  dmy_rho_negative_ion += (1.-dmy_phi) * exp( - dmy1 * e_potential0[im] );
  	}
       }
     }
@@ -623,10 +629,11 @@ inline void Set_Poisson_Boltzmann_ion_charge_density_salt(Value *Concentration
     for(int i=0;i<NX;i++){
       for(int j=0;j<NY;j++){
 	for(int k=0;k<NZ;k++){
-	  double dmy_pot = e_potential0[i][j][k];
-	  Concentration[0][i][j][k] = Rho_inf_positive_ion * exp( -dmy0 * dmy_pot ) * nu;
-	  Concentration[1][i][j][k] = Rho_inf_negative_ion * exp( -dmy1 * dmy_pot ) / nu;
-	  e_potential1[i][j][k] = dmy_pot;
+		int im=(i*NY*NZ_)+(j*NZ_)+k;
+	  double dmy_pot = e_potential0[im];
+	  Concentration[0][im] = Rho_inf_positive_ion * exp( -dmy0 * dmy_pot ) * nu;
+	  Concentration[1][im] = Rho_inf_negative_ion * exp( -dmy1 * dmy_pot ) / nu;
+	  e_potential1[im] = dmy_pot;
 	}
       }
     }
@@ -638,40 +645,17 @@ inline void Set_Poisson_Boltzmann_ion_charge_density_salt(Value *Concentration
 	for(int i=0;i<NX;i++){
 	  for(int j=0;j<NY;j++){
 	    for(int k=0;k<NZ;k++){
-	      double dmy_phi = dmy_value0[i][j][k];
-	      double dmy_conc = Concentration[n][i][j][k];
-	      dmy_value1[i][j][k] += Valency_e[n] * dmy_conc * (1.- dmy_phi);
+		int im=(i*NY*NZ_)+(j*NZ_)+k;
+	      double dmy_phi = dmy_value0[im];
+	      double dmy_conc = Concentration[n][im];
+	      dmy_value1[im] += Valency_e[n] * dmy_conc * (1.- dmy_phi);
 	    }
 	  }
 	}
       }
     }
+
     if(0){
-      alp = 1.e0/KMAX2;
-      {
-	A2a_k(e_potential1);
-	for(int i=0; i<NX; i++){
-	  for(int j=0; j<NY; j++){
-	    for(int k=0; k<NZ_; k++){
-	      e_potential1[i][j][k] *= -K2[i][j][k];
-	    }
-	  }
-	}
-	A_k2a(e_potential1);
-      }
-      sum=0.;
-      error=0.;
-      const double iDielectric_cst = 1./Dielectric_cst;
-      for(int i=0;i<NX;i++){
-	for(int j=0;j<NY;j++){
-	  for(int k=0;k<NZ;k++){
-	    double dmy = alp * (e_potential1[i][j][k] + dmy_value1[i][j][k]* iDielectric_cst);
-	    e_potential0[i][j][k] += dmy;
-	    sum += fabs(e_potential0[i][j][k]);
-	    error += fabs(dmy);
-	  }
-	}
-      }
     }else {
       A2a_k(dmy_value1);
       Charge_field_k2Coulomb_potential_k_PBC(dmy_value1);
@@ -682,14 +666,14 @@ inline void Set_Poisson_Boltzmann_ion_charge_density_salt(Value *Concentration
       for(int i=0;i<NX;i++){
 	for(int j=0;j<NY;j++){
 	  for(int k=0;k<NZ;k++){
-	    double dmy = alp * (dmy_value1[i][j][k] - e_potential0[i][j][k]);
-	    e_potential0[i][j][k] += dmy;
-	    sum += fabs(e_potential0[i][j][k]);
+		int im=(i*NY*NZ_)+(j*NZ_)+k;
+	    double dmy = alp * (dmy_value1[im] - e_potential0[im]);
+	    e_potential0[im] += dmy;
+	    sum += fabs(e_potential0[im]);
 	    error += fabs(dmy);
 	  }
 	}
       }
-      //      double ion_density = Total_ion_charge(Concentration, p);
       //      fprintf(stderr,"# check the convergence  %d %g\n", m,error/sum);
     }
     if(error/sum < TOL) break;
@@ -701,7 +685,7 @@ inline void Set_Poisson_Boltzmann_ion_charge_density_salt(Value *Concentration
   A2a_k(Concentration[1]);
 }
 
-void Init_rho_ion(Value *Concentration, Particle *p, CTime &jikan){
+void Init_rho_ion(double **Concentration, Particle *p, CTime &jikan){
 
   for(int i=0;i<Component_Number;i++){//コロイド表面電荷は0以外に設定する
     if(Surface_charge[i] == 0.){
@@ -750,17 +734,21 @@ void Init_rho_ion(Value *Concentration, Particle *p, CTime &jikan){
       }
     }
 
+    //Reset_phi(phi);
     Reset_phi(phi);
+    //Make_phi_particle(phi, p);
     Make_phi_particle(phi, p);
     double volume_phi = 0.;
     for(int i=0;i<NX;i++){
       for(int j=0;j<NY;j++){
 	for(int k=0;k<NZ;k++){
-	  double dmy_phi = phi[i][j][k];
+	  //double dmy_phi = phi[i][j][k];
+	  double dmy_phi = phi[(i*NY*NZ_)+(j*NZ_)+k];
 	  volume_phi += (1.-dmy_phi);
 	}
       }
     }
+
     double Counterion_density = Counterion_number / (volume_phi * DX3);
     fprintf(stderr,"############################ initial state for counterions\n");
     fprintf(stderr,"# counterion_density %g\n", Counterion_density);
@@ -821,10 +809,11 @@ void Init_rho_ion(Value *Concentration, Particle *p, CTime &jikan){
   }
   Count_solute_each(Total_solute, Concentration, p, phi, up[0]);
 }
+
 void Mem_alloc_charge(void){
 
-  Valency = (double *) malloc(sizeof(Value) * N_spec);
-  Onsager_coeff = (double *) malloc(sizeof(Value) * N_spec);
+  Valency       = alloc_1d_double(N_spec);
+  Onsager_coeff = alloc_1d_double(N_spec);
   Mem_alloc_solute();
 
 }

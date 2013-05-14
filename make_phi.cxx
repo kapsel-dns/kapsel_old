@@ -1,5 +1,5 @@
 //
-// $Id: make_phi.cxx,v 1.14 2005/09/25 17:39:08 nakayama Exp $
+// $Id: make_phi.cxx,v 1.3 2006/10/20 00:24:36 iwashita Exp $
 //
 
 #include "make_phi.h"
@@ -7,16 +7,113 @@
 void (*Angular2v)(const double *omega, const double *r, double *v);
 
 int NP_domain;
-int NP_domain_extended;
 int NP_domain_interface;
-int NP_domain_interface_extended;
 int **Sekibun_cell;
-int **Sekibun_cell_extended;
 int **Sekibun_cell_interface;
-int **Sekibun_cell_interface_extended;
 
-inline void Make_phi_u_primitive(Value &phi
-				 ,Value *up
+/////////////
+void Make_surface_normal(double **surface_normal
+			   ,const Particle *p){
+  
+  for(int d=0;d<DIM;d++){
+    Reset_phi(surface_normal[d]);
+  }
+
+    double xp[DIM];
+    int x_int[DIM];
+    double residue[DIM];
+    int sw_in_cell;
+    int r_mesh[DIM];
+    double r[DIM];
+    double dmy_r;
+    double dmy;
+	double ir;
+#pragma omp parallel for schedule(dynamic, 1) private(xp,x_int,residue,sw_in_cell,r_mesh,r,dmy_r,dmy,ir)
+  for(int n=0; n < Particle_Number; n++){
+    for(int d=0;d<DIM;d++){
+      xp[d] = p[n].x[d];
+      
+      assert(xp[d] >= 0);
+      assert(xp[d] < L[d]);
+    }
+    sw_in_cell 
+      = Particle_cell(xp, DX, x_int, residue);// {1,0} が返ってくる
+    sw_in_cell = 1;
+    for(int mesh=0; mesh < NP_domain; mesh++){
+      Relative_coord(Sekibun_cell[mesh]
+		     ,x_int, residue, sw_in_cell, Ns, DX, r_mesh, r);
+      dmy_r= sqrt(SQ(r[0])+SQ(r[1])+SQ(r[2]));
+      dmy = ABS(dmy_r - RADIUS);
+      if(dmy < HXI){
+	  ir = 1./dmy_r;
+	for(int d=0;d<DIM;d++){
+	  surface_normal[d][(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] 
+	    += r[d]*ir;
+	}
+      }
+    }
+  }
+}
+/////////////
+inline void Make_rho_field_primitive(double *phi
+				     ,Particle *p
+				     ,const double &dx
+				     ,const int &np_domain
+				     ,int **sekibun_cell
+				     ,int Nlattice[DIM]
+    ){
+    
+    double drho;
+    double xp[DIM];
+    int x_int[DIM];
+    double residue[DIM];
+    int sw_in_cell;
+    int r_mesh[DIM];
+    double r[DIM];
+    double x[DIM];
+    double dmy;
+    double dmy_phi;
+    int im;
+#pragma omp parallel for schedule(dynamic, 1) private(drho,xp,x_int,residue,sw_in_cell,r_mesh,r,x,dmy,dmy_phi)
+    for(int n=0; n < Particle_Number; n++){
+	drho = RHO_particle[p[n].spec] - RHO;
+	for(int d=0;d<DIM;d++){
+	    xp[d] = p[n].x[d];
+	}
+	
+	sw_in_cell 
+	    = Particle_cell(xp, dx, x_int, residue);// {1,0} が返ってくる
+	sw_in_cell = 1;
+	for(int mesh=0; mesh < np_domain; mesh++){
+	    Relative_coord(sekibun_cell[mesh]
+			   , x_int, residue, sw_in_cell, Nlattice, dx, r_mesh, r);
+	    for(int d=0;d<DIM;d++){
+		x[d] = r_mesh[d] * dx;
+	    }
+	    dmy=Distance(x,xp);
+	    dmy_phi=Phi(dmy)*drho;
+	    phi[(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += dmy_phi;
+	}
+    }
+#pragma omp parallel for schedule(dynamic, 1) private(im)
+    for(int i=0;i<Nlattice[0];i++){
+	for(int j=0;j<Nlattice[1];j++){
+	    for(int k=0;k<Nlattice[2];k++){
+		im=(i*NY*NZ_)+(j*NZ_)+k;
+		phi[im] += RHO; 
+	    }
+	}
+    }
+}
+void Make_rho_field(double *phi
+		    ,Particle *p
+		    ){
+  int *nlattice;
+  nlattice = Ns;
+  Make_rho_field_primitive(phi, p, DX, NP_domain,Sekibun_cell,nlattice);
+}
+inline void Make_phi_u_primitive(double *phi
+				 ,double **up
 				 ,Particle *p
 				 ,const int &SW_UP
 				 ,const double &dx
@@ -24,354 +121,258 @@ inline void Make_phi_u_primitive(Value &phi
 				 ,int **sekibun_cell
 				 ,const int Nlattice[DIM]
 				 ,const double radius = RADIUS
-				 ){
-  static const double dv= POW3(dx);
-  static double volume;
-  
-  for(int n=0; n < Particle_Number; n++){
-    volume = 0.0;
+    ){
+    
     double xp[DIM],vp[DIM],omega_p[DIM];
-    for(int d=0;d<DIM;d++){
-      xp[d] = p[n].x[d];
-      vp[d] = p[n].v[d];
-      omega_p[d] = p[n].omega[d];
-      
-      if(0){
-	fprintf(stderr, "ccc:%g %g %g\n"
-		,p[n].x[0]/L[0]
-		,p[n].x[1]/L[1]
-		,p[n].x[2]/L[2]
-		);
-	assert(p[n].x[d] >= 0);
-	assert(p[n].x[d] < L[d]);
-	fprintf(stderr, "ddd:%g %g %g\n"
-		,p[n].x[0]
-		,p[n].x[1]
-		,p[n].x[2]
-		);
-      }
-    }
-    
     int x_int[DIM];
     double residue[DIM];
-    int sw_in_cell 
-      = Particle_cell(xp, dx, x_int, residue);// {1,0} が返ってくる
-    sw_in_cell = 1;
+    int sw_in_cell; 
     int r_mesh[DIM];
     double r[DIM];
-    for(int mesh=0; mesh < np_domain; mesh++){
-      Relative_coord(sekibun_cell[mesh]
-		     , x_int, residue, sw_in_cell, Nlattice, dx, r_mesh, r);
-      double x[DIM];
-      for(int d=0;d<DIM;d++){
-	x[d] = r_mesh[d] * dx;
-      }
-      double dmy = Distance(x, xp);
-      double dmy_phi= Phi(dmy,radius);
-      phi[r_mesh[0]][r_mesh[1]][r_mesh[2]] += dmy_phi;
-      volume += dmy_phi;
-      
-      if(SW_UP){
-	double v_rot[DIM];
-	Angular2v(omega_p, r, v_rot);
+    double x[DIM];
+    double dmy;
+    double dmy_phi;
+    double v_rot[DIM];
+#pragma omp parallel for schedule(dynamic, 1) private(xp,vp,omega_p,x_int,residue,sw_in_cell,r_mesh,r,x,dmy,dmy_phi,v_rot)
+    for(int n=0; n < Particle_Number; n++){
 	for(int d=0;d<DIM;d++){
-	  up[d][r_mesh[0]][r_mesh[1]][r_mesh[2]] += 
-	    ( (vp[d]+v_rot[d]) * dmy_phi);
+	    xp[d] = p[n].x[d];
+	    vp[d] = p[n].v[d];
+	    omega_p[d] = p[n].omega[d];
 	}
-      }
-    }
-    p[n].eff_mass_ratio 
-      = 1.0;
-    //= MASS[p[n].spec]/(RHO_particle[p[n].spec] * volume * dv);
-  }
-}
-
-
-void Make_phi_u_advection(Value &phi, Value *up, Particle *p){
-  static const double dv= POW3(DX);
-  static double volume;
-  
-  int *nlattice;
-  if(SW_EQ == Shear_Navier_Stokes){
-    nlattice = Ns_shear;
-  }else {
-    nlattice = Ns;
-  } 
-
-  for(int n=0; n < Particle_Number; n++){
-    volume = 0.0;
-    double xp[DIM],vp[DIM];
-    for(int d=0;d<DIM;d++){
-      xp[d] = p[n].x[d];
-      vp[d] = p[n].v[d];
-      {
-	assert(p[n].x[d] >= 0);
-	assert(p[n].x[d] < L[d]);
-      }
+	
+	sw_in_cell 
+	    = Particle_cell(xp, dx, x_int, residue);// {1,0} が返ってくる
+	sw_in_cell = 1;
+	for(int mesh=0; mesh < np_domain; mesh++){
+	    Relative_coord(sekibun_cell[mesh]
+			   , x_int, residue, sw_in_cell, Nlattice, dx, r_mesh, r);
+	    //dmy = 0.;
+	    for(int d=0;d<DIM;d++){
+		x[d] = r_mesh[d] * dx;
+		//dmy += SQ(r[d]);
+	    }
+	    dmy = Distance(x, xp);
+	    //dmy = sqrt(dmy);
+	    dmy_phi= Phi(dmy,radius);
+	    phi[(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += dmy_phi;
+	    
+	    if(SW_UP){
+		Angular2v(omega_p, r, v_rot);
+		for(int d=0;d<DIM;d++){
+		    up[d][(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += 
+			( (vp[d]+v_rot[d]) * dmy_phi);
+		}
+	    }
+	}
+	p[n].eff_mass_ratio 
+	    = 1.0;
     }
     
-    int x_int[DIM];
-    double residue[DIM];
-    int sw_in_cell 
-      = Particle_cell(xp, DX, x_int, residue);// {1,0} が返ってくる
-    sw_in_cell = 1;
-    int r_mesh[DIM];
-    double r[DIM];
-    for(int mesh=0; mesh < NP_domain; mesh++){
-      Relative_coord(Sekibun_cell[mesh], x_int, residue, sw_in_cell, nlattice, DX, r_mesh, r);
-      double x[DIM];
-      for(int d=0;d<DIM;d++){
-	x[d] = r_mesh[d] * DX;
-      }
-      double dmy = Distance(x, xp);
-      double dmy_phi= Phi(dmy);
-      phi[r_mesh[0]][r_mesh[1]][r_mesh[2]] += dmy_phi;
-      volume += dmy_phi;
-      
-      for(int d=0;d<DIM;d++){
-	up[d][r_mesh[0]][r_mesh[1]][r_mesh[2]] += ( vp[d] * dmy_phi);
-      }
-    }
-    p[n].eff_mass_ratio 
-      = 1.0;
-    //= MASS[p[n].spec]/(RHO_particle[p[n].spec] * volume * dv);
-  }
-  if(SW_EQ == Shear_Navier_Stokes){
-    Symmetrize_real(phi);
-    Symmetrize_u(up);
-  }
-}
-void Make_phi_particle(Value &phi
-		       ,Particle *p
-		       ,const double radius
-		       ){
-  const int SW_UP = 0;
-  Value *dmy_up;
-  int *nlattice;
-  if(SW_EQ == Shear_Navier_Stokes){
-    nlattice = Ns_shear;
-  }else {
-    nlattice = Ns;
-  } 
-  Make_phi_u_primitive(phi, dmy_up, p, SW_UP,DX,NP_domain
-		       ,Sekibun_cell
-		       ,nlattice
-		       ,radius);
-  if(SW_EQ == Shear_Navier_Stokes){
-    Symmetrize_real(phi);
-  }
-}
-void Make_phi_u_particle(Value &phi
-			 ,Value *up
-			 ,Particle *p
-			 ){
-  const int SW_UP = 1;
-  int *nlattice;
-  if(SW_EQ == Shear_Navier_Stokes){
-    nlattice = Ns_shear;
-  }else {
-    nlattice = Ns;
-  } 
-  Make_phi_u_primitive(phi, up, p, SW_UP,DX,NP_domain,Sekibun_cell,nlattice);
-  if(SW_EQ == Shear_Navier_Stokes){
-    Symmetrize_real(phi);
-    Symmetrize_u(up);
-  }
-}
-void Make_phi_particle_extended(Value &phi
-				,Particle *p
-				){
-  const int SW_UP = 0;
-  Value *dmy_up;
-  Make_phi_u_primitive(phi, dmy_up, p
-		       ,SW_UP,.5*DX,NP_domain_extended
-		       ,Sekibun_cell_extended,N2s);
-}
-void Make_phi_u_particle_extended(Value &phi
-			 ,Value *up
-			 ,Particle *p
-			 ){
-  const int SW_UP = 1;
-  Make_phi_u_primitive(phi, up, p
-		       ,SW_UP,.5*DX,NP_domain_extended
-		       ,Sekibun_cell_extended,N2s);
-}
-
-/////////////
-void Make_surface_normal(Value surface_normal[DIM]
-			   ,const Particle *p){
-  
-  for(int d=0;d<DIM;d++){
-    Reset_phi(surface_normal[d]);
-  }
-  for(int n=0; n < Particle_Number; n++){
-    double xp[DIM];
-    for(int d=0;d<DIM;d++){
-      xp[d] = p[n].x[d];
-      
-      assert(xp[d] >= 0);
-      assert(xp[d] < L[d]);
-    }
-    int x_int[DIM];
-    double residue[DIM];
-    int sw_in_cell 
-      = Particle_cell(xp, DX, x_int, residue);// {1,0} が返ってくる
-    sw_in_cell = 1;
-    int r_mesh[DIM];
-    double r[DIM];
-    for(int mesh=0; mesh < NP_domain; mesh++){
-      Relative_coord(Sekibun_cell[mesh]
-		     ,x_int, residue, sw_in_cell, Ns, DX, r_mesh, r);
-      double x[DIM];
-      for(int d=0;d<DIM;d++){
-        x[d] = r_mesh[d] * DX;
-      }
-      double dmy_r = Distance(x, xp);
-      double dmy = ABS(dmy_r - RADIUS);
-      if(dmy < HXI){
-	double ir = 1./dmy_r;
-	for(int d=0;d<DIM;d++){
-	  surface_normal[d][r_mesh[0]][r_mesh[1]][r_mesh[2]] 
-	    += (x[d]-xp[d]) * ir;
+    // koba code //
+    if(SW_UP){
+	int im;
+	double idmy_phi;
+#pragma omp parallel for schedule(dynamic, 1) private(im,idmy_phi)
+	for (int i = 0; i < NX; i++) {
+	    for (int j = 0; j < NY; j++) {
+		for (int k = 0; k < NZ; k++) {
+		    im=(i*NY*NZ_)+(j*NZ_)+k;
+		    if (phi[im] > 1.){
+			idmy_phi=1./phi[im];
+			up[0][im] *= idmy_phi;
+			up[1][im] *= idmy_phi;
+			up[2][im] *= idmy_phi;
+			phi[im] = 1.;
+		    }
+		}
+	    }
 	}
-      }
     }
-  }
 }
-/////////////
-void Make_phi_force(Value &phi, Value *fp, const Particle *p){
-
-  for(int n=0; n < Particle_Number; n++){
-    double xp[DIM],f[DIM];
-    double imass = IMASS[p[n].spec];
-    for(int d=0;d<DIM;d++){
-      xp[d] = p[n].x[d];
-      f[d] = p[n].fr[d] + p[n].fv[d];
-      
-      {
-	assert(p[n].x[d] >= 0);
-	assert(p[n].x[d] < L[d]);
-      }
-    }
-    
-    int x_int[DIM];
-    double residue[DIM];
-    int sw_in_cell 
-      = Particle_cell(xp, DX, x_int, residue);// {1,0} が返ってくる
-    sw_in_cell = 1;
-    int r_mesh[DIM];
-    double r[DIM];
-    for(int mesh=0; mesh < NP_domain; mesh++){
-      Relative_coord(Sekibun_cell[mesh]
-		     ,x_int, residue, sw_in_cell
-		     ,Ns, DX, r_mesh, r);
-      double x[DIM];
-      for(int d=0;d<DIM;d++){
-	x[d] = r_mesh[d] * DX;
-      }
-      double dmy = Distance(x, xp);
-      double dmy_phi= Phi(dmy);
-      phi[r_mesh[0]][r_mesh[1]][r_mesh[2]] += dmy_phi;
-      
-      for(int d=0;d<DIM;d++){
-	fp[d][r_mesh[0]][r_mesh[1]][r_mesh[2]] += ( f[d] * dmy_phi * imass);
-      }
-    }
-  }
-}
-/////////////
-inline void Make_rho_field_primitive(Value &phi
-				     ,const Particle *p
+inline void Make_phi_u_primitive_OBL(double *phi
+				     ,double **up
+				     ,Particle *p
+				     ,const int &SW_UP
 				     ,const double &dx
 				     ,const int &np_domain
 				     ,int **sekibun_cell
 				     ,const int Nlattice[DIM]
-				     ){
-  static const double dv= POW3(dx);
-  
-  for(int n=0; n < Particle_Number; n++){
-    double drho = RHO_particle[p[n].spec] - RHO;
-    double xp[DIM];
-    for(int d=0;d<DIM;d++){
-      xp[d] = p[n].x[d];
-      
-    }
+				     ,const double radius = RADIUS
+    ){
     
+    double xp[DIM],vp[DIM],omega_p[DIM];
     int x_int[DIM];
     double residue[DIM];
-    int sw_in_cell 
-      = Particle_cell(xp, dx, x_int, residue);// {1,0} が返ってくる
-    sw_in_cell = 1;
+    int sw_in_cell; 
     int r_mesh[DIM];
     double r[DIM];
-    for(int mesh=0; mesh < np_domain; mesh++){
-      Relative_coord(sekibun_cell[mesh]
-		     , x_int, residue, sw_in_cell, Nlattice, dx, r_mesh, r);
-      double x[DIM];
-      for(int d=0;d<DIM;d++){
-	x[d] = r_mesh[d] * dx;
-      }
-      double dmy = Distance(x, xp);
-      double dmy_phi= Phi(dmy) * drho;
-      phi[r_mesh[0]][r_mesh[1]][r_mesh[2]] += dmy_phi;
+    double x[DIM];
+    double dmy;
+    double dmy_phi;
+    double v_rot[DIM];
+    int sign;
+#pragma omp parallel for schedule(dynamic, 1) private(xp,vp,omega_p,x_int,residue,sw_in_cell,r_mesh,r,x,dmy,dmy_phi,v_rot,sign)
+    for(int n=0; n < Particle_Number; n++){
+	for(int d=0;d<DIM;d++){
+	    xp[d] = p[n].x[d];
+	    vp[d] = p[n].v[d];
+	    omega_p[d] = p[n].omega[d];
+	}
+	
+	sw_in_cell 
+	    = Particle_cell(xp, dx, x_int, residue);// {1,0} が返ってくる
+	sw_in_cell = 1;
+	for(int mesh=0; mesh < np_domain; mesh++){
+	    sign = Relative_coord_check_stepover_Y(sekibun_cell[mesh]
+						   , x_int
+						   , residue
+						   , sw_in_cell
+						   , Nlattice
+						   , dx
+						   , r_mesh
+						   , r);
+
+	    dmy = 0.;
+	    for(int d=0;d<DIM;d++){
+		x[d] = r_mesh[d] * dx;
+		dmy+= SQ(r[d]);
+	    }
+	    dmy = sqrt(dmy);
+
+	    dmy_phi= Phi(dmy,radius);
+	    phi[(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += dmy_phi;
+	    
+	    if(SW_UP){
+		Angular2v(omega_p, r, v_rot);
+		for(int d=0;d<DIM;d++){
+		    if (!(d == 0)) {
+			up[d][(r_mesh[0]*NY*NZ_) + (r_mesh[1]*NZ_) + r_mesh[2]] += 
+			    (vp[d] + v_rot[d])*dmy_phi;
+		    } else {
+			up[0][(r_mesh[0]*NY*NZ_) + (r_mesh[1]*NZ_) + r_mesh[2]] +=
+			    ( (vp[d] - sign*Shear_rate_eff*L_particle[1] + v_rot[d])*dmy_phi);
+		    }
+		}
+	    }
+	}
+	p[n].eff_mass_ratio 
+	    = 1.0;
     }
-  }
-  for(int i=0;i<Nlattice[0];i++){
-    for(int j=0;j<Nlattice[1];j++){
-      for(int k=0;k<Nlattice[2];k++){
-	phi[i][j][k] += RHO; 
-      }
+    
+    // koba code //
+    if(SW_UP){
+	int im;
+	double idmy_phi;
+#pragma omp parallel for schedule(dynamic, 1) private(im,idmy_phi)
+	for (int i = 0; i < NX; i++) {
+	    for (int j = 0; j < NY; j++) {
+		for (int k = 0; k < NZ; k++) {
+		    im=(i*NY*NZ_)+(j*NZ_)+k;
+		    if (phi[im] > 1.){
+			idmy_phi=1./phi[im];
+			up[0][im] *= idmy_phi;
+			up[1][im] *= idmy_phi;
+			up[2][im] *= idmy_phi;
+			phi[im] = 1.;
+		    }
+		}
+	    }
+	}
     }
-  }
 }
-void Make_rho_field(Value &phi
-		    ,const Particle *p
-		    ){
+void Make_phi_particle(double *phi
+		       ,Particle *p
+		       ,const double radius
+		       ){
+  const int SW_UP = 0;
+  double **dmy_up;
   int *nlattice;
-  if(SW_EQ == Shear_Navier_Stokes){
+  nlattice = Ns;
+  Make_phi_u_primitive(phi, dmy_up, p, SW_UP,DX,NP_domain
+		       ,Sekibun_cell
+		       ,nlattice
+		       ,radius);
+}
+void Make_phi_u_particle(double *phi
+			 ,double **up
+			 ,Particle *p
+			 ){
+  const int SW_UP = 1;
+  int *nlattice;
+  nlattice = Ns;
+  Make_phi_u_primitive(phi, up, p, SW_UP,DX,NP_domain,Sekibun_cell,nlattice);
+  }
+
+void Make_phi_particle_OBL(double *phi
+			   ,Particle *p
+			   ,const double radius
+    ){
+    const int SW_UP = 0;
+    double **dmy_up;
+    int *nlattice;
+    nlattice = Ns;
+    Make_phi_u_primitive_OBL(phi, dmy_up, p, SW_UP,DX,NP_domain
+			     ,Sekibun_cell
+			     ,nlattice
+			     ,radius);
+}
+void Make_phi_u_particle_OBL(double *phi
+			     ,double **up
+			     ,Particle *p
+    ){
+    const int SW_UP = 1;
+    int *nlattice;
+    nlattice = Ns;
+    Make_phi_u_primitive_OBL(phi, up, p, SW_UP,DX,NP_domain,Sekibun_cell,nlattice);
+}
+
+void Make_phi_u_advection(double *phi, double **up, Particle *p){
+  // map only V_p, excepting \Omega_p to the field up
+  int *nlattice;
+  if(SW_EQ == Shear_Navier_Stokes || SW_EQ == Shear_Navier_Stokes_Lees_Edwards){
     nlattice = Ns_shear;
   }else {
     nlattice = Ns;
   } 
-  Make_rho_field_primitive(phi, p, DX, NP_domain,Sekibun_cell,nlattice);
-  if(SW_EQ == Shear_Navier_Stokes){
-    Symmetrize_real(phi);
-  }
-}
 
-void Make_phi_u_zwall(double u_wall[DIM]
-		      ,Value &phi
-		      ,Value *up
-		      ,Particle *p
-		      ,const int &SW_UP
-		      ,const double &dx
-		      ,const int &np_domain
-		      ,int **sekibun_cell
-		      ,const int Nlattice[DIM]
-		      ){
-  const int k_radius_wall = (int)ceil(A_radius_wall + HXI/dx);
-
-  for(int i=0;i<Nlattice[0];i++){
-    for(int j=0;j<Nlattice[1];j++){
+    double xp[DIM],vp[DIM];
+    int x_int[DIM];
+    double residue[DIM];
+    int sw_in_cell;
+    int r_mesh[DIM];
+    double r[DIM];
+    double x[DIM];
+    double dmy;
+    double dmy_phi;
+#pragma omp parallel for schedule(dynamic, 1) private(xp,vp,x_int,residue,sw_in_cell,r_mesh,r,x,dmy,dmy_phi)
+  for(int n=0; n < Particle_Number; n++){
+    for(int d=0;d<DIM;d++){
+      xp[d] = p[n].x[d];
+      vp[d] = p[n].v[d];
       {
-	int k=0;
-	double dmy_phi = Phi(0., A_radius_wall);
-	phi[i][j][k] += dmy_phi;
-      }
-      for(int k=1;k<=k_radius_wall;k++){
-	double dmy_r = (double)k*dx;
-	double dmy_phi = Phi(dmy_r, A_radius_wall);
-	phi[i][j][k] += dmy_phi;
-	int k_mirror = Nlattice[2] - k;
-	phi[i][j][k_mirror] += dmy_phi;
-	if(SW_UP){
-	  for(int d=0;d<DIM;d++){
-	    double dmy_u = u_wall[d] * dmy_phi;
-	    up[d][i][j][k] += dmy_u;
-	    up[d][i][j][k_mirror] += dmy_u;
-	  }
-	}
+	assert(p[n].x[d] >= 0);
+	assert(p[n].x[d] < L[d]);
       }
     }
+    
+    sw_in_cell 
+      = Particle_cell(xp, DX, x_int, residue);// {1,0} が返ってくる
+    sw_in_cell = 1;
+    for(int mesh=0; mesh < NP_domain; mesh++){
+      Relative_coord(Sekibun_cell[mesh], x_int, residue, sw_in_cell, nlattice, DX, r_mesh, r);
+      for(int d=0;d<DIM;d++){
+	x[d] = r_mesh[d] * DX;
+      }
+      dmy = Distance(x, xp);
+      dmy_phi= Phi(dmy);
+      phi[(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += dmy_phi;
+      
+      for(int d=0;d<DIM;d++){
+	up[d][(r_mesh[0]*NY*NZ_)+(r_mesh[1]*NZ_)+r_mesh[2]] += ( vp[d] * dmy_phi);
+      }
+    }
+    p[n].eff_mass_ratio 
+      = 1.0;
   }
 }

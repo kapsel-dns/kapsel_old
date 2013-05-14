@@ -1,5 +1,5 @@
 //
-// $Id: fluct.h,v 1.14 2005/09/09 07:34:16 nakayama Exp $
+// $Id: fluct.h,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 #ifndef FLUCT_H
 #define FLUCT_H
@@ -11,6 +11,7 @@
 #include "operate_omega.h"
 #include "make_phi.h"
 #include "particle_solver.h"
+//#include "SFMT.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,63 +24,7 @@ extern double genrand_real3(void);
 }
 #endif
 
-
-void Add_random_force(Particle *p, const CTime &jikan);
-void BD_solver_position_Euler(Particle *p, const CTime &jikan);
-void BD_solver_momentum(Particle *p, const CTime &jikan);
-void BD_solver_velocity_hydro(Particle *p, const CTime &jikan);
-void Add_random_stress_NSm1(Value zeta[DIM-1], Value rhs[DIM-1], double uk_dc[DIM], const Index_range *ijk_range, const int &n_ijk_range, const CTime &jikan, const double &truncate_factor, Particle *p);
-void Add_random_stress_NS(Value zeta[DIM-1], Value rhs[DIM-1], double uk_dc[DIM], const Index_range *ijk_range, const int &n_ijk_range, const CTime &jikan, const double &truncate_factor, Particle *p);
-void Add_random_stress_NS0(Value zeta[DIM-1], Value rhs[DIM-1], double uk_dc[DIM], const Index_range *ijk_range, const int &n_ijk_range, const CTime &jikan, const double &truncate_factor, Particle *p);
-void Add_random_stress_NS1(Value zeta[DIM-1], Value rhs[DIM-1], double uk_dc[DIM], const Index_range *ijk_range, const int &n_ijk_range, const CTime &jikan, const double &truncate_factor, Particle *p);
-void Add_random_stress_NS2(Value zeta[DIM-1], Value rhs[DIM-1], double uk_dc[DIM], const Index_range *ijk_range, const int &n_ijk_range, const CTime &jikan, const double &truncate_factor, Particle *p);
-void Add_random_stress_NS3(Value zeta[DIM-1], Value rhs[DIM-1], double uk_dc[DIM], const Index_range *ijk_range, const int &n_ijk_range, const CTime &jikan, const double &truncate_factor, Particle *p);
-void Add_random_stress_NS4(Value zeta[DIM-1], Value rhs[DIM-1], double uk_dc[DIM], const Index_range *ijk_range, const int &n_ijk_range, const CTime &jikan, const double &truncate_factor, Particle *p);
-void Add_random_stress_term_NS(Value zeta[DIM-1], Value rhs[DIM-1], double uk_dc[DIM], const Index_range *ijk_range, const int &n_ijk_range, const CTime &jikan, const double &truncate_factor, Particle *p);
-void Add_random_stress_x_NS1(Value u[DIM]
-			     ,Particle *p
-			     ,const Index_range *ijk_range
-			     ,const int &n_ijk_range
-			     ,const CTime &jikan
-			     ,const double &truncate_factor
-			     ,Value f_particle[DIM] // working memory
-			     ,Value up[DIM] // working memory
-			     );
-void Add_random_stress_x_NS2(Value u[DIM]
-			     ,Particle *p
-			     ,const Index_range *ijk_range
-			     ,const int &n_ijk_range
-			     ,const CTime &jikan
-			     ,const double &truncate_factor
-			     ,Value f_particle[DIM] // working memory
-			     ,Value up[DIM] // working memory
-			     );
-void Add_random_stress_x_NS3(Value u[DIM]
-			     ,Particle *p
-			     ,const Index_range *ijk_range
-			     ,const int &n_ijk_range
-			     ,const CTime &jikan
-			     ,const double &truncate_factor
-			     ,Value f_particle[DIM] // working memory
-			     ,Value up[DIM] // working memory
-			     );
-void Add_random_stress_x_slavedNS(Value u[DIM]
-			     ,Particle *p
-			     ,const Index_range *ijk_range
-			     ,const int &n_ijk_range
-			     ,const CTime &jikan
-			     ,const double &truncate_factor
-			     ,Value f_particle[DIM] // working memory
-			     ,Value up[DIM] // working memory
-			     );
-void Add_random_stress_x_up_slavedNS(Value up[DIM]
-			     ,Particle *p
-			     ,const Index_range *ijk_range
-			     ,const int &n_ijk_range
-			     ,const CTime &jikan
-			     ,const double &truncate_factor
-			     ,Value f_particle[DIM] // working memory
-			     );
+void Add_random_force_thermostat(Particle *p, const CTime &jikan);
 
 inline void MT_seed(const int &SW_seed, const unsigned long &seed){
     if(SW_seed == RANDOM_SEED){
@@ -93,13 +38,6 @@ inline void MT_seed(const int &SW_seed, const unsigned long &seed){
       exit_job(EXIT_FAILURE);
     }
 
-}
-inline void Gauss(double random[2]){
-  static double x1,x2;
-  x1 = sqrt(-2.0*log(genrand_real3()));
-  x2 = 2.*M_PI * genrand_real3();
-  random[0] = x1 * cos(x2);
-  random[1] = x1 * sin(x2);
 }
 
 inline void Gauss2(double random[2]){
@@ -117,16 +55,7 @@ inline void Gauss2(double random[2]){
 }
 
 inline void Force_random_walk(Particle *p){
-  //if(0){
-  if(SW_EQ == Shear_Navier_Stokes){
-    if(HYDRO_int > 0){
-      Calc_f_Lennard_Jones_shear_wall(p);
-    }
-  }
-  if(WALL == z_dirichlet){
-    Calc_f_Lennard_Jones_zwall(p);
-  }
-  Calc_f_Lennard_Jones_cap(p);
+  Calc_f_Lennard_Jones(p);
 }
 
 inline void Random_Walk(Particle *p
@@ -148,12 +77,12 @@ inline void Random_Walk(Particle *p
       h = dr/h;
     }
     for(int d=0; d<DIM; d++){      
-      p[n].x[d] += h * dmy[d];
+	  p[n].x[d] += h * dmy[d];
       p[n].x[d] -= floor(p[n].x[d]*iL_particle[d])*L_particle[d];
-    
-      assert(p[n].x[d] >= 0.);
+      
+	  assert(p[n].x[d] >= 0.);
       assert(p[n].x[d] < L_particle[d]);
-    }
+	}
   }
 }
 inline void Steepest_descent(Particle *p
@@ -172,12 +101,12 @@ inline void Steepest_descent(Particle *p
       h = dr/h;
     }
     for(int d=0; d<DIM; d++){      
-      p[n].x[d] += h * p[n].fr[d];
+	  p[n].x[d] += h * p[n].fr[d];
       p[n].x[d] -= floor(p[n].x[d]*iL_particle[d])*L_particle[d];
-    
+   
       assert(p[n].x[d] >= 0.);
       assert(p[n].x[d] < L_particle[d]);
-    }
+	}
   }
 }
 #endif

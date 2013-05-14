@@ -1,5 +1,5 @@
 //
-// $Id: alloc.h,v 1.1 2004/10/29 11:32:32 nakayama Exp $
+// $Id: alloc.h,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 /* ---- memory allocation ---- */
 

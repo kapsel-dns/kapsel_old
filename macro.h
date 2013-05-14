@@ -1,5 +1,5 @@
 //
-// $Id: macro.h,v 1.8 2005/07/20 16:56:15 nakayama Exp $
+// $Id: macro.h,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 #ifndef MACRO_H_
 #define MACRO_H_

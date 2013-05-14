@@ -1,5 +1,5 @@
 //
-// $Id: mt19937ar.c,v 1.1 2005/02/10 06:14:28 nakayama Exp $
+// $Id: mt19937ar.c,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 /* 
    A C-program for MT19937, with initialization improved 2002/1/26.

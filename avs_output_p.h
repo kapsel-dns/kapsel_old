@@ -1,5 +1,5 @@
 //
-// $Id: avs_output_p.h,v 1.1 2005/07/20 16:55:01 nakayama Exp $
+// $Id: avs_output_p.h,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 #ifndef AVS_OUTPUT_P_H
 #define AVS_OUTPUT_P_H

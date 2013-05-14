@@ -1,16 +1,15 @@
 //
-// $Id: f_particle.cxx,v 1.2 2004/11/24 05:02:38 nakayama Exp $
+// $Id: f_particle.cxx,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 #include "f_particle.h"
 
-Value *f_particle;
+double **f_particle;
 
 void Mem_alloc_f_particle(void){
-  f_particle = (Value *) malloc(sizeof(Value *) * DIM);
+  f_particle = (double **) malloc(sizeof(double *) * DIM);
   for(int d=0;d<DIM;d++){
-    f_particle[d] = alloc_3d_double(NX, NY, NZ_);
+    f_particle[d] = alloc_1d_double(NX*NY*NZ_);
   }
-
 }
 
  

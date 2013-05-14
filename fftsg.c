@@ -1,5 +1,5 @@
 //
-// $Id: fftsg.c,v 1.1 2004/10/29 11:33:01 nakayama Exp $
+// $Id: fftsg.c,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 /*
 Fast Fourier/Cosine/Sine Transform

@@ -1,5 +1,5 @@
 //
-// $Id: alloc.c,v 1.1 2004/10/29 11:32:32 nakayama Exp $
+// $Id: alloc.c,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 /* ---- memory allocation ---- */
 #include "alloc.h"
@@ -153,4 +153,6 @@ void free_3d_double(double ***ddd)
     free(ddd[0]);
     free(ddd);
 }
+
+
 

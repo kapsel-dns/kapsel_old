@@ -1,216 +1,222 @@
-// kapsel v1.0
+// kapsel v2.10
 //
 
-//
-// $Id: define.udf,v 1.1 2006/05/29 07:49:11 ryoichi Exp $
+// $Id: define.udf,v 2.1 2010/03/13 RY $
 //
 \begin{global_def}
-class Vector3d:{x: float [unit] y: float [unit] z: float [unit]}[unit]
-class Particle:{ R:Vector3d [m],  v:Vector3d [m/s]}      
+
+class Vector3d:{x: float y: float z: float}
+class Particle:{ R:Vector3d,  v:Vector3d}
+
 constitutive_eq: {
- type: select {'Navier_Stokes'
-//		 ,'Qian_Sheng'
-//		 ,'nematic_Allen_Cahn'
-//		 ,'Olmsted_Goldbart'
-//		 ,'Slippy_Navier_Stokes'
-		 ,'Shear_Navier_Stokes'
-		 ,'Electrolyte'
-//		 ,'Two_fluid'
-		 }
+   type: select {'Navier_Stokes','Shear_Navier_Stokes','Shear_Navier_Stokes_Lees_Edwards', 'Electrolyte'}
  
- Navier_Stokes: { 
- DX: double [cm] "lattice spacing, fixed for all directions"
-       RHO:	double	[g/cm^3] "mass density of solvent" 
-       ETA:	double [g/cm/s] "shear viscosity of solvent"
-       kBT:	double  "temperature"
-       }
+   Navier_Stokes: { 
+      DX: 	double "lattice spacing (=1), fixed for all directions"
+      RHO:	double "mass density of solvent" 
+      ETA:	double "shear viscosity of solvent"
+      kBT:	double "temperature"
+      alpha_v: 	double "correction coefficient of V"
+      alpha_o: 	double "correction coefficient of Omega"
+   }
 
-// nematic_Allen_Cahn: { 
-// DX: double [cm] "lattice spacing, fixed for all directions"
-//       Landau_de_Gennes_coefficients: {
-//       A: double  "+:stable isotropic phase, -: unstable isotropic phase"
-//	    l1: double "scaled elastic coeff. 1"
-//	    l2: double "scaled elastic coeff. 2"
-//	    }
-// }
-// Olmsted_Goldbart: { 
-// DX: double [cm] "lattice spacing, fixed for all directions"
-//       Landau_de_Gennes_coefficients: {
-//       A: double  "+:stable isotropic phase, -: unstable isotropic phase"
-//	    l1: double "scaled elastic coeff. 1"
-//	    l2: double "scaled elastic coeff. 2"
-//	    }
-// }
-// Qian_Sheng: { 
-// DX: double [cm] "lattice spacing, fixed for all directions"
-//       Landau_de_Gennes_coefficients: {
-//       A: double  "+:stable isotropic phase, -: unstable isotropic phase"
-//	    l1: double "scaled elastic coeff. 1"
-//	    l2: double "scaled elastic coeff. 2"
-//	    }
-// }
-// Slippy_Navier_Stokes: { 
-// DX: double [cm] "lattice spacing, fixed for all directions"
-//       RHO:	double	[g/cm^3] "mass density of solvent" 
-//       ETA:	double [g/cm/s] "shear viscosity of solvent"
-//       Nu_ratio:	double [g/cm/s] "ratio of kinematic visocities between solvent and particles"
-//       }
- Shear_Navier_Stokes: { 
- DX: double [cm] "lattice spacing, fixed for all directions"
-       RHO:	double	[g/cm^3] "mass density of solvent" 
-       ETA:	double [g/cm/s] "shear viscosity of solvent"
-       kBT:	double  "temperature"
-	Shear_rate:	double [1/s] "shear rate"
-       }
- Electrolyte: { 
- DX: double [cm] "lattice spacing, fixed for all directions"
-       RHO:	double	[g/cm^3] "mass density of solvent" 
-       ETA:	double [g/cm/s] "shear viscosity of solvent"
-       kBT:	double  "temperature"
-       Dielectric_cst: double [C^2/N/cm^2] "dielectric constant"
-       INIT_profile: select {"Uniform","Poisson_Boltzmann"} "Initial condition for density profile of ions"
-       Add_salt: {
-	type:select {"saltfree","salt"}
-	       saltfree: {
-	       Valency_counterion: double "valency of counterion"
-	       Onsager_coeff_counterion: double [g/s] "Onsager coefficient of counterion"
-		   }
-	       salt: {
-	       Valency_positive_ion: double "valency of positive ion"
-	       Valency_negative_ion: double "valency of negative ion"
-	       Onsager_coeff_positive_ion: double [g/s] "Onsager coefficient of positive ion"
-	       Onsager_coeff_negative_ion: double [g/s] "Onsager coefficient of negative ion"
-	       Debye_length: double [cm]
-		    }
+   Shear_Navier_Stokes: { 
+      DX: 	double "lattice spacing (=1), fixed for all directions"
+      RHO:	double "mass density of solvent" 
+      ETA:	double "shear viscosity of solvent"
+      kBT:	double "temperature"
+      alpha_v: 	double "correction coefficient of V"
+      alpha_o: 	double "correction coefficient of Omega"
+      External_field: {
+	 type: select {"DC","AC"}
+	 DC: {
+	    Shear_rate:double "shear rate"
+	 }
+	 AC: {
+	    Shear_rate:double "shear rate"
+	    Frequency: double "alternating frequenct"
 	}
-       Electric_field: {
-	type: select {"ON","OFF"}
-	       ON: {
-        	type: select {"DC","AC"}
-		       DC: {
-		       Ex: double [V/cm]
-		       Ey: double [V/cm]
-		       Ez: double [V/cm]
-		            }
-		       AC: {
-		       Ex: double [V/cm]
-		       Ey: double [V/cm]
-		       Ez: double [V/cm]
-		       Frequency: double [Hz]
-		            }
-	           }
+      }
+   }
+
+   Shear_Navier_Stokes_Lees_Edwards: { 
+      DX: 	double "lattice spacing (=1), fixed for all directions"
+      RHO:	double "mass density of solvent" 
+      ETA:	double "shear viscosity of solvent"
+      kBT:	double "temperature"
+      alpha_v: 	double "correction coefficient of V"
+      alpha_o: 	double "correction coefficient of Omega"
+      External_field: {
+	 type: select {"DC","AC"}
+	 DC: {
+	    Shear_rate:double "shear rate"
+	 }
+	 AC: {
+	    Shear_rate:double "shear rate"
+	    Frequency: double "alternating frequenct"
 	}
-}
-// Two_fluid: { 
-// DX: double [cm] "lattice spacing, fixed for all directions"
-//       RHO:	double	[g/cm^3] "mass density of solvent" 
-//       ETA:	double [g/cm/s] "shear viscosity of solvent"
-//       kBT:	double  "temperature"
-//       Mean_Bulk_concentration: double [1/cm^3] "number density of second solute"
-//       Onsager_coeff: double
-//       External_field: select {"ON","OFF"}
-//       ON: {
-//       Ex: double 
-//       Ey: double 
-//       Ez: double 
-//            }
-//	}
+      }
+   }
+
+   Electrolyte: { 
+      DX: 	double "lattice spacing (=1), fixed for all directions"
+      RHO:	double "mass density of solvent" 
+      ETA:	double "shear viscosity of solvent"
+      kBT:	double "temperature"
+      alpha_v: 	double "correction coefficient of V"
+      alpha_o: 	double "correction coefficient of Omega"
+      Dielectric_cst: double "dielectric constant"
+      INIT_profile: select {"Uniform","Poisson_Boltzmann"} "Initial condition for density profile of ions"
+      Add_salt: {
+	 type:select {"saltfree","salt"}
+	 saltfree: {
+	    Valency_counterion: double "valency of counterion"
+	    Onsager_coeff_counterion: double "Onsager coefficient of counterion"
+	 }
+	 salt: {
+	    Valency_positive_ion: double "valency of positive ion"
+	    Valency_negative_ion: double "valency of negative ion"
+            Onsager_coeff_positive_ion: double "Onsager coefficient of positive ion"
+	    Onsager_coeff_negative_ion: double "Onsager coefficient of negative ion"
+	    Debye_length: double "Deby screening length in the unit of DX"
+	 }
+      }
+      Electric_field: {
+	 type: select {"ON","OFF"}
+	 ON: {
+            type: select {"DC","AC"}
+	    DC: {
+		Ex: double
+		Ey: double
+		Ez: double
+		}
+	    AC: {
+		Ex: double
+		Ey: double
+		Ez: double
+		Frequency: double
+		}
+	 }
+      }
+   }
 }
 
+object_type: {
+   type: select {'spherical_particle','chain'}
 
-Particle_spec[]:{
- Particle_number: int "number of colloidal particles"
- MASS_RATIO: double "mass density ratio colloid/solvent"
- Pretilt_scalar_order: double "intrinsic scalar order at surface of particles"
- Anchoring_coeff: double "spring cst. of surface anchoring"
- Surface_charge: double "surface charge of colloid"
-		    }
+   spherical_particle: { 
+      Particle_spec[]:{
+         Particle_number: int "number of colloidal particles"
+         MASS_RATIO: double "mass density ratio colloid/solvent"
+         Surface_charge: double "surface charge of colloid"
+      }
+   }
+
+   chain:{
+      Chain_spec[]:{
+         Beads_number: int "number of beads in a chain"
+         Chain_number: int "number of chains"
+         MASS_RATIO: double "mass density ratio chain/solvent"
+         Surface_charge: double "surface charge of colloid"
+      }
+   }
+}
 
 A_XI: double "interface thickness in the unit of DX"
+
 A: double "colloid radius in the unit of DX"
 
 gravity: {
- G: double [cm/s^2] "gravitaional constant"
-      G_direction: select {'-X','-Y','-Z'} "direction of gravitaional acceleration" 
-					     }
+   G: double "gravitaional acceleration constant"
+   G_direction: select {'-X','-Y','-Z'} "direction of gravitaional acceleration" 
+}
 
 
-EPSILON: double [] "Lennard-Jones depth"
-LJ_powers: select {'12:6','24:12','36:18'} "define the power of LJ potential" 
+EPSILON: double "Lennard-Jones depth"
+
+LJ_powers: select {'12:6','24:12','36:18'} "set of power exponents of LJ potential" 
 
 mesh: {
- NPX: int "number of x-mesh:power of 2"
-	NPY: int "number of y-mesh:power of 2"
-	NPZ: int "number of z-mesh:power of 2"
-	}
+   NPX: int "number of mesh in x-direction = 2^NPX"
+   NPY: int "number of mesh in y-direction = 2^NPY"
+   NPZ: int "number of mesh in z-direction = 2^NPZ"
+}
  
 time_increment: {
- type: select {"auto","manual"}
- auto: {
- factor: double "delta_t = factor * h(determined by system paramters)"
-		  }
- manual: {
- delta_t: double [s]		
-		  }
+   type: select {"auto","manual"}
+   auto: {
+      factor: double "delta_t = factor * h(determined by system paramters)"
+   }
+   manual: {
+      delta_t: double
+   }
 }
+
 switch: {
- ROTATION: select {'ON','OFF'} "OFF: not solve rotation, ON: solve rotation"
- HYDRO_int: select {'Correct','free draining','squeeze-lubrication and drain'} 
- "(correct hydrodynamic interaction) OR (free draining) OR (free draining and squeeze mode of lubrication)"
+   ROTATION: select {'ON','OFF'} "OFF: not solve rotation, ON: solve rotation"
+   HYDRO_int: select {'Correct','free draining','squeeze-lubrication and drain'} "(correct hydrodynamic interaction) OR (free draining) OR (free draining and squeeze mode of lubrication)"
    Stokes: select {'with advection','w/o advection'}
-   LJ_truncate: select {'ON','OFF','NONE'} "OFF:attractive LJ, ON:short-range repulsive part only, NONE: without LJ force"
+   LJ_truncate: select {'ON','OFF','NONE'} "OFF:normal LJ, ON:WCA, NONE: no-intaction at all"
    INIT_distribution: {
-	type: select {'uniform_random','random_walk','FCC','BCC','user_specify'} 
-//		"NONE: do not select this. this is for test.,\
-		"uniform_random:distributed uniformly in box,\
-		random_walk:distributed uniformly in box,\
-		FCC:distributed on FCC latice,\
-		BCC:distributed on BCC latice,\
-		user_specify:configuration and velocity specified by user"
-	random_walk: {
-		iteration: int
-	}
-	user_specify: {
-		Particles[]: Particle
-	}
-	}
+      type: select {'uniform_random','random_walk','FCC','BCC','user_specify'} 
+	"uniform_random:distributed uniformly in box,\
+	random_walk:distributed uniformly in box,\
+	FCC:distributed on FCC latice,\
+	BCC:distributed on BCC latice,\
+	user_specify:configuration and velocity specified by user"
+      random_walk: {
+         iteration: int
+      }
+      user_specify: {
+         Particles[]: Particle
+      }
+   }
    FIX_CELL: {
-				x: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
-				y: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
-				z: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
-}
+      x: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
+      y: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
+      z: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
+   }
+   pin: {
+      type: select{"NO","YES"}
+      YES:{pin[]: int
+           pin_rot[]: int
+          }
+   }
 }
 									       
 boundary_condition: {
- type: select {"z_dirichlet","full_periodic"}
- z_dirichlet: {
- wall_velocity_x: double [cm/s]		
- wall_velocity_y: double [cm/s]		
- wall_velocity_z: double [cm/s]		
-		  }
-} 
+   type: select {"z_dirichlet","full_periodic"}
+   z_dirichlet: {
+      wall_velocity_x: double [cm/s]		
+      wall_velocity_y: double [cm/s]		
+      wall_velocity_z: double [cm/s]		
+   }
+}
 	
 output: {
- GTS: int "interval between snapshots"
-	Num_snap: int "number of snapshots"
-	AVS: select {"ON","OFF"}
- ON:{
- Out_dir: string "directory name"
-	    Out_name: string "prefix name for data file"
-	    FileType: select {"BINARY","ASCII"} "output data type"
-						  }
- UDF: select {"ON","OFF"}
+   GTS: int "interval between snapshots"
+   Num_snap: int "number of snapshots"
+   AVS: select {"ON","OFF"}
+   ON:{
+      Out_dir: string "directory name"
+      Out_name: string "prefix name for data file"
+      FileType: select {"BINARY","ASCII"} "output data type"
+   }
+   UDF: select {"ON","OFF"}
 }
+
 \end{global_def}
+
 \begin{def}
-E: float [J] "total kinetic energy of the system"
-t: float [s] "total time"
-//class Vector3d:{x: float [unit] y: float [unit] z: float [unit]}[unit]
-//class Particle:{ R:Vector3d [m],  v:Vector3d [m/s]}      
+E: float "total kinetic energy of the system"
+t: float "total time"
+//class Vector3d:{x: float y: float z: float}
+//class Particle:{ R:Vector3d,  v:Vector3d}      
 //class tensor:{xy: float yz: float zx: float xx: float yy: float}
 //class nspec:{ Concentration: float, Concentration_rhs0: float, Rho_ion: float}
 Particles[]: Particle
 \end{def}
+
 \begin{def}
 class sParticle:{ 
       R:Vector3d ,
@@ -232,26 +238,30 @@ class sParticle:{
       torquer_previous:Vector3d ,
       torquev:Vector3d ,
       torquev_previous:Vector3d
-	}      
+}      
 class CTime:{
       ts:int
       time:float
 }
 \end{def}
+
 \begin{global_def}
 resume:{
-Calculation: select {'NEW','CONTINUE'} "flg in order to specify resumed simulation or not"
- CONTINUE:{
-	Saved_Data:{
-		jikan: CTime
-		Particles[]: sParticle
-		Zeta[][][]:{
-			zeta0: float
-			zeta1: float
-		}
-		uk_dc: Vector3d 
-		Concentration[][][][]: {ck:float}
-	}
- }
+   Calculation: select {'NEW','CONTINUE'} "flg in order to specify resumed simulation or not"
+   CONTINUE:{
+      Saved_Data:{
+         jikan: CTime
+         Particles[]: sParticle
+         Zeta[][][]:{
+            zeta0: float
+            zeta1: float
+         }
+         uk_dc: Vector3d 
+         Concentration[][][][]: {ck:float}
+         oblique: {
+            degree_oblique: float
+         }		
+      }
+   }
 }
 \end{global_def}

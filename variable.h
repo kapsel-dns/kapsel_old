@@ -1,5 +1,5 @@
 //
-// $Id: variable.h,v 1.7 2005/12/01 09:31:43 nakayama Exp $
+// $Id: variable.h,v 1.1 2006/06/27 18:41:29 nakayama Exp $
 //
 #ifndef VARIABLE_H
 #define VARIABLE_H
@@ -23,6 +23,7 @@ typedef struct Particle{
     double eff_mass_ratio;
     int spec;
     double x[DIM];
+    double x_previous[DIM];
 
     double v[DIM];
     double v_old[DIM];
@@ -34,6 +35,7 @@ typedef struct Particle{
     double fr_previous[DIM];
     double fv[DIM];
     double fv_previous[DIM];
+    double f_restrain[DIM];
 
     double f_collison[DIM];
     double f_collison_previous[DIM];
@@ -48,6 +50,10 @@ typedef struct Particle{
     double torquer_previous[DIM];
     double torquev[DIM];
     double torquev_previous[DIM];
+
+    double momentum_depend_fr[DIM];
+    double momentum_depend_restrain[DIM];
+    double momentum_depend_fluctuation[DIM];
 } Particle;
 
 typedef struct Index_range{

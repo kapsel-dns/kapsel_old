@@ -1,5 +1,5 @@
 //
-// $Id: profile.h,v 1.8 2005/10/11 09:39:42 nakayama Exp $
+// $Id: profile.h,v 1.1 2006/06/27 18:41:29 nakayama Exp $
 //
 #ifndef PROFILE_H
 #define PROFILE_H
@@ -88,12 +88,8 @@ void Particle_domain(
 		     double (*profile_func)(const double &x, const double radius)
 		     ,int &np_domain
 		     ,int** &sekibun_cell
-		     ,int &np_domain_extended
-		     ,int** &sekibun_cell_extended
 		     ,int &np_domain_interface
 		     ,int** &sekibun_cell_interface
-		     ,int &np_domain_interface_extended
-		     ,int** &sekibun_cell_interface_extended
 		     ,int &np_domain_exponential
 		     ,int** &sekibun_cell_exponential
 		     );

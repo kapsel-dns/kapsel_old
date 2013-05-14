@@ -1,5 +1,5 @@
 //
-// $Id: interaction.h,v 1.11 2005/09/08 07:00:51 nakayama Exp $
+// $Id: interaction.h,v 1.1 2006/06/27 18:41:28 nakayama Exp $
 //
 #ifndef INTERACTION_H
 #define INTERACTION_H
@@ -7,64 +7,63 @@
 #include "input.h"
 #include "macro.h"
 
-inline void Distance0_shear(const double *x1
-			    ,const double *x2
-			    ,double &r12
-			    ,double *x12){
+inline void Distance0_OBL(const double *x1
+			  ,const double *x2
+			  ,double &r12
+			  ,double *x12
+    ){
     double dmy = 0.0;
-    int cell[DIM];
-
-    int d;
-    {
-	d=1;
-	x12[d] = x2[d]-x1[d];
-	cell[d] = Nint(x12[d]/L_particle[d]);
-	x12[d] -= cell[d] * L_particle[d];
+    
+    double signY = x2[1] - x1[1];
+    x12[1] = x2[1] - x1[1];
+    x12[1] -= (double)Nint(x12[1]/L_particle[1]) * L_particle[1];
+    signY  -= x12[1];
+    int sign = (int) signY;
+    if (!(sign == 0)) {
+	sign = sign/abs(sign);
     }
-    {
-	d=0;
-	x12[d] = x2[d]-x1[d];
-	x12[d] += cell[1] * (-Shear_strain);
-	cell[d] = Nint(x12[d]/L_particle[d]);
-	x12[d] -= cell[d] * L_particle[d];
-    }
-    {
-	d=2;
-	x12[d] = x2[d]-x1[d];
-	cell[d] = Nint(x12[d]/L_particle[d]);
-	x12[d] -= cell[d] * L_particle[d];
-    }
-    for(int d=0;d<DIM;d++){
-	dmy += SQ( x12[d] );
-    }
+    dmy += SQ(x12[1]);
+    
+    x12[0] = x2[0] - (x1[0] + (double)sign*degree_oblique*L_particle[1]);
+    x12[0] -= (double)Nint(x12[0]/L_particle[0]) * L_particle[0];
+    dmy += SQ( x12[0] );
+    
+    x12[2] = x2[2] - x1[2];
+    x12[2] -= (double)Nint(x12[2]/L_particle[2]) * L_particle[2];
+    dmy += SQ( x12[2] );
+    
     r12 = sqrt(dmy);
 }
-inline void Distance0_shear_hydro(const double *x1
+inline int Distance0_OBL_stepover(const double *x1
 				  ,const double *x2
 				  ,double &r12
-				  ,double *x12){
+				  ,double *x12
+    ){
     double dmy = 0.0;
+    
+    double signY = x2[1] - x1[1];
+    x12[1] = x2[1] - x1[1];
+    x12[1] -= (double)Nint(x12[1]/L_particle[1]) * L_particle[1];
+    signY  -= x12[1];
+    int sign = (int) signY;
+    if (!(sign == 0)) {
+	sign = sign/abs(sign);
+    }
+    dmy += SQ(x12[1]);
+    
+    x12[0] = x2[0] - (x1[0] + (double)sign*degree_oblique*L_particle[1]);
+    x12[0] -= (double)Nint(x12[0]/L_particle[0]) * L_particle[0];
+    dmy += SQ( x12[0] );
+    
+    x12[2] = x2[2] - x1[2];
+    x12[2] -= (double)Nint(x12[2]/L_particle[2]) * L_particle[2];
+    dmy += SQ( x12[2] );
 
-    int d;
-    {
-	d=0;
-	x12[d] = x2[d]-x1[d];
-	x12[d] -= (double)Nint(x12[d]/L_particle[d]) * L_particle[d];
-    }
-    {
-	d=1;
-	x12[d] = x2[d]-x1[d];
-    }
-    {
-	d=2;
-	x12[d] = x2[d]-x1[d];
-	x12[d] -= (double)Nint(x12[d]/L_particle[d]) * L_particle[d];
-    }
-    for(int d=0;d<DIM;d++){
-	dmy += SQ( x12[d] );
-    }
     r12 = sqrt(dmy);
+
+    return sign;
 }
+
 inline void Distance0(const double *x1
 		      ,const double *x2
 		      ,double &r12
