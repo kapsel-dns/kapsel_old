@@ -1,5 +1,7 @@
 #ifndef LAD3_H
 #define LAD3_H
+
+#include "parameter_define.h"
 /*!
   \file lad3.h
   \brief Basic Matrix / Vector Euclidean 3D routines (not very optimized)
@@ -191,6 +193,48 @@ inline void M_trans(double B[DIM][DIM], const double alpha=1.0){
   double A[DIM][DIM];
   M_copy(A, B);
   M_trans(B, A, alpha);
+}
+
+/*!
+  \brief Compute orthonormal coordinate system given two non-colinear
+  vectors u and v
+ */
+inline void M_coordinate_frame(double u[DIM], double v[DIM], double w[DIM]){
+  double ex[DIM];
+  double ey[DIM];
+  double ez[DIM];
+
+  double norm;
+  double dmy;
+  //ex
+  norm = sqrt(SQ(u[0]) + SQ(u[1]) + SQ(u[2]));
+  assert(norm > 0.0);
+  for(int i = 0; i < DIM; i++){
+    ex[i] = u[i] / norm;
+  }
+
+  //ey
+  dmy = ex[0]*v[0] + ex[1]*v[1] + ex[2]*v[2];
+  for(int i = 0; i < DIM; i++){
+    ey[i] = v[i] - dmy*ex[i];
+  }
+  norm = sqrt(SQ(ey[0]) + SQ(ey[1]) + SQ(ey[2]));
+  assert(norm > 0.0);
+  for(int i = 0; i < DIM; i++){
+    ey[i] = ey[i] / norm;
+  }
+
+  //ez
+  ez[0] = ex[1]*ey[2] - ex[2]*ey[1];
+  ez[1] = ex[2]*ey[0] - ex[0]*ey[2];
+  ez[2] = ex[0]*ey[1] - ex[1]*ey[0];
+  norm = sqrt(SQ(ez[0]) + SQ(ez[1]) + SQ(ez[2]));
+  assert(norm > 0.0);
+  for(int i = 0; i < DIM; i++){
+    u[i] = ex[i];
+    v[i] = ey[i];
+    w[i] = ez[i] / norm;
+  }
 }
 
 /*!

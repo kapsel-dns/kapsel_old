@@ -79,7 +79,9 @@ extern double Shear_frequency;
 extern double Inertia_stress;
 extern int Shear_strain_int;
 extern double dev_shear_stress[];
+extern double rigid_dev_shear_stress[];
 extern double &dev_shear_stress_lj;
+extern double &rigid_dev_shear_stress_lj;
 extern double Delta_ETA;
 extern double Nu_ratio;
 extern double NU;
@@ -169,6 +171,11 @@ extern Particle_IO ORIENTATION;
 extern int N_iteration_init_distribution;
 extern int FIX_CELL;
 extern int FIX_CELLxyz[DIM];
+extern int PINNING;
+extern int N_PIN;
+extern int *Pinning_Numbers;
+extern int N_PIN_ROT;
+extern int *Pinning_ROT_Numbers;
 //////
 extern double DX;
 extern double DX3;
@@ -197,10 +204,11 @@ extern int Rigid_Number;
 extern int *Rigid_Motions;// 0(fix) or 1(free)
 extern double **Rigid_Velocities;
 extern double **Rigid_Omegas;
-extern int *Particle_RigidIDs;
 extern int *RigidID_Components;
 extern int *Rigid_Particle_Numbers;
+extern int *Rigid_Particle_Cumul;
 extern double **xGs;
+extern double **xGs_previous;
 extern double *Rigid_Masses;
 extern double *Rigid_IMasses;
 extern double ***Rigid_Moments;
@@ -223,6 +231,7 @@ extern int *Particle_RigidID;
 //////
 ////
 extern double **GRvecs;
+extern double **GRvecs_body;
 //////
 extern int GTS;
 extern int Num_snap;

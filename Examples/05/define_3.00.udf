@@ -1,0 +1,271 @@
+// kapsel v3.0
+// 2013/01/13
+
+\begin{global_def}
+
+class Vector3d:{x: float, y: float, z: float}
+class Quaternion:{q0: float, q1: float, q2: float, q3: float}
+class Particle:{R:Vector3d,  v:Vector3d, q:Quaternion, omega:Vector3d}
+
+constitutive_eq: {
+   type: select {'Navier_Stokes','Shear_Navier_Stokes','Shear_Navier_Stokes_Lees_Edwards', 'Electrolyte'}
+ 
+   Navier_Stokes: { 
+      DX: 	double "lattice spacing (=1), fixed for all directions"
+      RHO:	double "mass density of solvent" 
+      ETA:	double "shear viscosity of solvent"
+      kBT:	double "temperature"
+      alpha_v: 	double "correction coefficient of V"
+      alpha_o: 	double "correction coefficient of Omega"
+   }//End Navier_Stokes
+
+   Shear_Navier_Stokes: { 
+      DX: 	double "lattice spacing (=1), fixed for all directions"
+      RHO:	double "mass density of solvent" 
+      ETA:	double "shear viscosity of solvent"
+      kBT:	double "temperature"
+      alpha_v: 	double "correction coefficient of V"
+      alpha_o: 	double "correction coefficient of Omega"
+      External_field: {
+	 type: select {"DC","AC"}
+	 DC: {
+	    Shear_rate:double "shear rate"
+	 }
+	 AC: {
+	    Shear_rate:double "shear rate"
+	    Frequency: double "alternating frequenct"
+	}
+      }
+   }//end Shear_Navier_Stokes
+
+   Shear_Navier_Stokes_Lees_Edwards: { 
+      DX: 	double "lattice spacing (=1), fixed for all directions"
+      RHO:	double "mass density of solvent" 
+      ETA:	double "shear viscosity of solvent"
+      kBT:	double "temperature"
+      alpha_v: 	double "correction coefficient of V"
+      alpha_o: 	double "correction coefficient of Omega"
+      External_field: {
+	 type: select {"DC","AC"}
+	 DC: {
+	    Shear_rate:double "shear rate"
+	 }
+	 AC: {
+	    Shear_rate:double "shear rate"
+	    Frequency: double "alternating frequenct"
+	}
+      }
+   }
+
+   Electrolyte: { 
+      DX: 	double "lattice spacing (=1), fixed for all directions"
+      RHO:	double "mass density of solvent" 
+      ETA:	double "shear viscosity of solvent"
+      kBT:	double "temperature"
+      alpha_v: 	double "correction coefficient of V"
+      alpha_o: 	double "correction coefficient of Omega"
+      Dielectric_cst: double "dielectric constant"
+      INIT_profile: select {"Uniform","Poisson_Boltzmann"} "Initial condition for density profile of ions"
+      Add_salt: {
+	 type:select {"saltfree","salt"}
+	 saltfree: {
+	    Valency_counterion: double "valency of counterion"
+	    Onsager_coeff_counterion: double "Onsager coefficient of counterion"
+	 }
+	 salt: {
+	    Valency_positive_ion: double "valency of positive ion"
+	    Valency_negative_ion: double "valency of negative ion"
+            Onsager_coeff_positive_ion: double "Onsager coefficient of positive ion"
+	    Onsager_coeff_negative_ion: double "Onsager coefficient of negative ion"
+	    Debye_length: double "Deby screening length in the unit of DX"
+	 }
+      } //End Add_salt
+      Electric_field: {
+	 type: select {"ON","OFF"}
+	 ON: {
+            type: select {"DC","AC"}
+	    DC: {
+		Ex: double
+		Ey: double
+		Ez: double
+		}
+	    AC: {
+		Ex: double
+		Ey: double
+		Ez: double
+		Frequency: double
+		}
+	 }
+      } //End Electric Field
+   } // End Electrolyte
+} // End constitutive_eq
+
+object_type: {
+   type: select {'spherical_particle','chain','rigid'}
+
+   spherical_particle: { 
+      Particle_spec[]:{
+         Particle_number: int "number of colloidal particles"
+         MASS_RATIO: double "mass density ratio colloid/solvent"
+         Surface_charge: double "surface charge of colloid"
+	 janus_axis: select {'NONE', 'X', 'Y', 'Z'} "janus axis in body_fixed frame"
+	 janus_propulsion: select{'OFF', 'TUMBLER', 'SQUIRMER', 'OBSTACLE'}
+	 janus_force: Vector3d "self-propulsion force"
+	 janus_torque: Vector3d "self-propulsion torque"
+	 janus_slip_vel: float "Slip velocity coeff B1"
+	 janus_slip_mode: float "Blake squirmer mode B2/B1"
+      }
+   }//end spherical_particle
+
+   chain:{
+      Chain_spec[]:{
+         Beads_number: int "number of beads in a chain"
+         Chain_number: int "number of chains"
+         MASS_RATIO: double "mass density ratio chain/solvent"
+         Surface_charge: double "surface charge of colloid"
+	 janus_axis: select {'NONE', 'X', 'Y', 'Z'} "janus axis in body_fixed frame"
+      }
+   }
+   rigid:{
+      Rigid_spec[]:{
+         Beads_number: int "number of beads in a chain"
+         Chain_number: int "number of chains"
+         MASS_RATIO: double "mass density ratio chain/solvent"
+         Surface_charge: double "surface charge of colloid"
+         Rigid_motion: select {'fix','free'}
+         Rigid_velocity: Vector3d "speed of translation ### fix only ###"
+         Rigid_omega: Vector3d "angular velocity ### fix only ###"
+      }
+   }
+}
+
+A_XI: double "interface thickness in the unit of DX"
+
+A: double "colloid radius in the unit of DX"
+
+gravity: {
+   G: double "gravitaional acceleration constant"
+   G_direction: select {'-X','-Y','-Z'} "direction of gravitaional acceleration" 
+}
+
+
+EPSILON: double "Lennard-Jones depth"
+
+LJ_powers: select {'12:6','24:12','36:18'} "set of power exponents of LJ potential" 
+
+mesh: {
+   NPX: int "number of mesh in x-direction = 2^NPX"
+   NPY: int "number of mesh in y-direction = 2^NPY"
+   NPZ: int "number of mesh in z-direction = 2^NPZ"
+}
+ 
+time_increment: {
+   type: select {"auto","manual"}
+   auto: {
+      factor: double "delta_t = factor * h(determined by system paramters)"
+   }
+   manual: {
+      delta_t: double
+   }
+}
+
+switch: {
+   ROTATION: select {'ON','OFF'} "OFF: not solve rotation, ON: solve rotation"
+   LJ_truncate: select {'ON','OFF','NONE'} "OFF:normal LJ, ON:WCA, NONE: no-intaction at all"
+   INIT_distribution: {
+      type: select {'uniform_random','random_walk','FCC','BCC','user_specify'} 
+	"uniform_random:distributed uniformly in box,\
+	random_walk:distributed uniformly in box,\
+	FCC:distributed on FCC latice,\
+	BCC:distributed on BCC latice,\
+	user_specify:configuration and velocity specified by user"
+      random_walk: {
+         iteration: int
+      }
+      user_specify: {
+         Particles[]: Particle
+      }
+   }
+   INIT_orientation: select {'user_specify', 'random', 'space_align'}
+   SLIP_tol: float "Tolerance for iterative slip convergence"
+   SLIP_iter: int "Maximum number of iterations for iterative slip convergence"
+   pin: select{'NO','YES'} "pin particles"
+   FIX_CELL: {
+      x: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
+      y: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
+      z: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
+      }
+}
+
+output: {
+   GTS: int "interval between snapshots"
+   Num_snap: int "number of snapshots"
+   AVS: select {"ON","OFF"}
+   ON:{
+      Out_dir: string "directory name"
+      Out_name: string "prefix name for data file"
+      FileType: select {"BINARY","ASCII"} "output data type"
+   }
+   UDF: select {"ON","OFF"}
+}
+
+\end{global_def}
+
+\begin{def}
+class outParticle:{R:Vector3d,  R_raw:Vector3d, v:Vector3d, q:Quaternion, omega:Vector3d, 
+      		   f_hydro:Vector3d, torque_hydro:Vector3d, f_slip:Vector3d, torque_slip:Vector3d}
+E: float "total kinetic energy of the system"
+t: float "total time"
+Particles[]: outParticle
+\end{def}
+
+
+\begin{def}
+class sParticle:{ 
+      R:Vector3d ,
+      v:Vector3d ,
+      v_old:Vector3d ,
+      f_hydro:Vector3d ,
+      f_hydro_previous:Vector3d ,
+      f_hydro1:Vector3d ,
+      f_slip:Vector3d ,
+      f_slip_previous:Vector3d,
+      fr:Vector3d ,
+      fr_previous:Vector3d ,
+      omega:Vector3d ,
+      omega_old:Vector3d ,
+      torque_hydro:Vector3d ,
+      torque_hydro_previous:Vector3d ,
+      torque_hydro1:Vector3d ,
+      torque_slip:Vector3d,
+      torque_slip_previous:Vector3d,
+      q:Quaternion,
+      q_old:Quaternion
+}      
+
+class CTime:{
+      ts:int
+      time:float
+}
+\end{def}
+
+\begin{global_def}
+resume:{
+   Calculation: select {'NEW','CONTINUE'} "flg in order to specify resumed simulation or not"
+   CONTINUE:{
+      Saved_Data:{
+         jikan: CTime
+         Particles[]: sParticle
+         Zeta[][][]:{
+            zeta0: float
+            zeta1: float
+         }
+         uk_dc: Vector3d 
+         Concentration[][][][]: {ck:float}
+         oblique: {
+            degree_oblique: float
+         }		
+      }
+   }
+}
+\end{global_def}

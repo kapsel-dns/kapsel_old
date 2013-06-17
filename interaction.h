@@ -13,6 +13,17 @@
 #include "macro.h"
 
 /*!
+  \brief Determine if two particle belong to the same rigid chain
+ */
+inline int rigid_chain(const int &i, const int &j){
+  int dmy = 0;
+  if(SW_PT == rigid){
+    if(Particle_RigidID[i] == Particle_RigidID[j]) dmy = 1;
+  }
+  return dmy;
+}
+
+/*!
   \brief Distance vector between two points under periodic Lees-Edwards
   boundary conditions
   \details Distance vector from point \f$x1\f$ to point \f$x2\f$

@@ -17,6 +17,11 @@
 extern double Min_rij;
 extern double Max_force;
 extern double *Hydro_force;
+extern double *Hydro_force_new;
+extern double *Hydro_force_new_u;
+extern double *Hydro_force_new_p;
+extern double *Hydro_force_new_v;
+extern double *Hydro_force_new_w;
 
 enum Particle_BC {
   PBC_particle
@@ -74,7 +79,8 @@ inline void Calc_f_Lennard_Jones(Particle *p){
 inline double Calc_f_Lennard_Jones_OBL(Particle *p){
     return Calc_f_Lennard_Jones_shear_cap_primitive(p, Distance0_OBL, DBL_MAX);
 }
-inline void Calc_anharmonic_force_chain(Particle *p){
+inline double Calc_anharmonic_force_chain(Particle *p, 
+                                          void (*distance0_func)(const double *x1, const double *x2,double &r12, double *x12)){
     double anharmonic_spring_cst=30.*EPSILON/SQ(SIGMA);
     const double R0=1.5*SIGMA;
     const double iR0=1./R0;
@@ -83,54 +89,6 @@ inline void Calc_anharmonic_force_chain(Particle *p){
     int rest_Chain_Number[Component_Number];
     for (int i = 0; i < Component_Number; i++) {
 	rest_Chain_Number[i] = Chain_Numbers[i];
-//	fprintf(stderr,"### rest_p_num %d %d\n", i, rest_Chain_Number[i]);
-    }
-    
-    int n = 0;
-
-    while (n < Particle_Number - 1) {
-	for (int i = 0; i < Component_Number; i++) {
-	    if (rest_Chain_Number[i] > 0) {
-		for (int j = 0; j < Beads_Numbers[i]; j++) {
-		    //fprintf(stderr,"### anharmonic %d\n", j);
-		    if (j < Beads_Numbers[i] - 1) {
-			int m = n + 1;
-			double dmy_r1[3];
-			for(int d=0; d<DIM ;d++){
-			    dmy_r1[d]=p[n].x[d]-p[m].x[d];
-			    dmy_r1[d] -= (double)Nint(dmy_r1[d]/L_particle[d])*L_particle[d];
-			}
-			double dm_r1=SQ(dmy_r1[0])+SQ(dmy_r1[1])+SQ(dmy_r1[2]);
-			double dm1=1./(1. - dm_r1*iR02);
-			
-			if(dm1 < 0.0){
-			    fprintf(stderr,"### anharmonic error\n");
-			}
-			
-			for(int d=0; d<DIM; d++){
-			    double dmy=dm1*dmy_r1[d];
-			    p[n].fr[d] += -anharmonic_spring_cst*dmy;
-			    p[m].fr[d] += anharmonic_spring_cst*dmy;
-			}
-		    }
-		    n++;
-		}
-		rest_Chain_Number[i]--;
-	    }
-	}
-    }
-}
-
-inline double Calc_anharmonic_force_chain_OBL(Particle *p){
-    double anharmonic_spring_cst=30.*EPSILON/SQ(SIGMA);
-    const double R0=1.5*SIGMA;
-    const double iR0=1./R0;
-    const double iR02=SQ(iR0);
-    
-    int rest_Chain_Number[Component_Number];
-    for (int i = 0; i < Component_Number; i++) {
-	rest_Chain_Number[i] = Chain_Numbers[i];
-//	fprintf(stderr,"### rest_p_num %d %d\n", i, rest_Chain_Number[i]);
     }
     
     int n = 0;
@@ -139,20 +97,13 @@ inline double Calc_anharmonic_force_chain_OBL(Particle *p){
 	for (int i = 0; i < Component_Number; i++) {
 	    if (rest_Chain_Number[i] > 0) {
 		for (int j = 0; j < Beads_Numbers[i]; j++) {
-		    //fprintf(stderr,"### anharmonic %d\n", j);
 		    if (j < Beads_Numbers[i] - 1) {
 			int m = n + 1;
 			double dmy_r1[DIM];
-			double dm_r1 = 0.0;
-			Distance0_OBL(p[m].x, p[n].x, dm_r1, dmy_r1);
-			/*
-			for(int d=0; d<DIM ;d++){
-			    dmy_r1[d]=p[n].x[d]-p[m].x[d];
-			    dmy_r1[d] -= (double)Nint(dmy_r1[d]/L_particle[d])*L_particle[d];
-			}
-			double dm_r1=SQ(dmy_r1[0])+SQ(dmy_r1[1])+SQ(dmy_r1[2]);
-			*/
-			double dm1=1./(1. - dm_r1*iR02);
+                        double dm_r1 = 0.0;
+                        distance0_func(p[m].x, p[n].x, dm_r1, dmy_r1);
+                        
+			double dm1=1./(1. - SQ(dm_r1)*iR02);
 			
 			if(dm1 < 0.0){
 			    fprintf(stderr,"### anharmonic error\n");
@@ -163,8 +114,8 @@ inline double Calc_anharmonic_force_chain_OBL(Particle *p){
 			    p[n].fr[d] += -anharmonic_spring_cst*dmy;
 			    p[m].fr[d] += anharmonic_spring_cst*dmy;
 			}
-			shear_stress +=
-			    ((-anharmonic_spring_cst * dm1 * dmy_r1[0])* (dmy_r1[1]));
+                        shear_stress +=
+                          ((-anharmonic_spring_cst * dm1 * dmy_r1[0]) * (dmy_r1[1]));
 		    }
 		    n++;
 		}
@@ -173,5 +124,32 @@ inline double Calc_anharmonic_force_chain_OBL(Particle *p){
 	}
     }
     return shear_stress;
+}
+
+/*!
+  \brief Chain debug info for chains in shear flow (x-y plane)
+ */
+inline void rigid_chain_debug(Particle *p, const double &time, 
+                              const int &rigidID=0){
+  if(SW_PT == rigid){
+    int pid = Rigid_Particle_Cumul[rigidID];
+    fprintf(stdout, "%.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n"
+            ,time
+            ,-atan2(GRvecs[pid][1], -GRvecs[pid][0])
+            ,p[pid].x[0]
+            ,p[pid].x[1]
+            ,xGs[rigidID][0]
+            ,xGs[rigidID][1]
+            ,p[pid].v[0]
+            ,p[pid].v[1]
+            ,velocityGs[rigidID][0]
+            ,velocityGs[rigidID][1]
+            ,p[pid].omega[2]
+            ,omegaGs[rigidID][2]
+            ,forceGs[rigidID][0]
+            ,forceGs[rigidID][1]
+            ,torqueGs[rigidID][2]
+            );
+  }
 }
 #endif

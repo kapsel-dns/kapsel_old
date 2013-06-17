@@ -157,6 +157,9 @@ void Time_evolution_hydro(double **zeta, double uk_dc[DIM], double **f, Particle
 		  MD_solver_velocity_slip_iter(p, jikan, new_iter);
 		}
 	      }
+              if(PINNING){
+                Pinning(p);
+              }
 	      slip_iter++;
 
 	      if(Slip_particle_convergence(p) < MAX_SLIP_TOL || slip_iter == MAX_SLIP_ITER){
@@ -180,6 +183,10 @@ void Time_evolution_hydro(double **zeta, double uk_dc[DIM], double **f, Particle
 	if(kBT > 0. && SW_EQ != Electrolyte){
 	    Add_random_force_thermostat(p, jikan); 
 	}
+
+        if(PINNING){
+          Pinning(p);
+        }
 	
 	{
 	    Reset_phi_u(phi, up);
@@ -252,7 +259,7 @@ void Time_evolution_hydro_OBL(double **zeta, double uk_dc[DIM], double **f, Part
 	    A_k2a(u[d]);
 	}
 	Shear_rate_eff = Shear_rate;
-
+       
 	//Deformation 
 #pragma omp parallel for schedule(dynamic, 1) private(im)
 	for(int i=0; i<NX; i++){
@@ -271,7 +278,7 @@ void Time_evolution_hydro_OBL(double **zeta, double uk_dc[DIM], double **f, Part
 	degree_oblique += Shear_rate_eff*jikan.dt_fluid;
 	if (degree_oblique >= 1.) {
 	    
-	    for(int i = 0; i < NX; i++) {
+          for(int i = 0; i < NX; i++){
 		for(int j = 0; j < NY; j++) {
 		    
 		    double sign = j - NY/2;
@@ -281,13 +288,14 @@ void Time_evolution_hydro_OBL(double **zeta, double uk_dc[DIM], double **f, Part
 		    
 		    int i_oblique = (int)(sign*(j - NY/2))*sign;
 		    i_oblique      = (int) fmod(i + i_oblique + 4.*NX, NX);
-		    for(int k = 0; k < NZ; k++) {
+		    for(int k = 0; k < NZ; k++){
 			im = (i*NY*NZ_)+(j*NZ_) + k;
 			im_obl = (i_oblique*NY*NZ_)+(j*NZ_) + k;
-			
-			for (int d = 0; d < DIM; d++) {
-			    u[d][im_obl] = ucp[d][im];
-			}
+
+                        //Warning: reset grid points AND oblique basis vectors
+                        u[0][im_obl] = ucp[0][im] + ucp[1][im];
+                        u[1][im_obl] = ucp[1][im];
+                        u[2][im_obl] = ucp[2][im];
 		    }
 		}
 	    }
@@ -330,7 +338,7 @@ void Time_evolution_hydro_OBL(double **zeta, double uk_dc[DIM], double **f, Part
 
 	Calc_shear_rate_eff();
 	//End Deformation
-
+	
 	if(!Fixed_particle){
 	    if(jikan.ts == 0){
 		MD_solver_position_Euler_OBL(p, jikan);
@@ -355,6 +363,10 @@ void Time_evolution_hydro_OBL(double **zeta, double uk_dc[DIM], double **f, Part
 	if(kBT > 0. && SW_EQ != Electrolyte){
 	    Add_random_force_thermostat(p, jikan); 
 	}
+
+        if(PINNING){
+          Pinning(p);
+        }
 	
 	{
 	    Reset_phi_u(phi, up);
@@ -411,6 +423,11 @@ inline void Mem_alloc_var(double **zeta){
   rhop = alloc_1d_double(NX*NY*NZ_);
   work_v1 = alloc_1d_double(NX*NY*NZ_);
   Hydro_force = alloc_1d_double(NX*NY*NZ_);
+  Hydro_force_new = alloc_1d_double(NX*NY*NZ_);
+  Hydro_force_new_u = alloc_1d_double(NX*NY*NZ_);
+  Hydro_force_new_p = alloc_1d_double(NX*NY*NZ_);
+  Hydro_force_new_v = alloc_1d_double(NX*NY*NZ_);
+  Hydro_force_new_w = alloc_1d_double(NX*NY*NZ_);
 }
 
 int main(int argc, char *argv[]){
@@ -438,7 +455,13 @@ int main(int argc, char *argv[]){
       fprintf(stdout, "#Evolution type Shear_Navier_Stokes_Lees_Edwards\n");
       Time_evolution = Time_evolution_hydro_OBL;
   } else {
-      fprintf(stdout, "#Evolution type Shear_Navier_Stokes\n");
+      if(SW_EQ == Navier_Stokes){
+        fprintf(stdout, "#Evolution type Navier_Stokes\n");
+      }else if(SW_EQ == Shear_Navier_Stokes){
+        fprintf(stdout, "#Evolution type Shear_Navier_Stokes\n");
+      }else if(SW_EQ == Electrolyte){
+        fprintf(stdout, "#Evolution type Electrolyte\n");
+      }
       Time_evolution = Time_evolution_hydro;
   }
 
@@ -566,7 +589,7 @@ int main(int argc, char *argv[]){
 	Mean_shear_stress(SHOW, stderr, dev_shear_stress, particles, jikan, Shear_rate_eff);
     } else if (SW_EQ == Shear_Navier_Stokes_Lees_Edwards){
 	Shear_strain_realized += Shear_rate_eff * jikan.dt_fluid;
-	Mean_shear_stress(SHOW, stderr, dev_shear_stress, particles, jikan, Shear_rate_eff);
+	Mean_shear_stress(SHOW, stderr, dev_shear_stress, particles, jikan, Shear_rate);
     }
 
     //////////////////////////////////////////////////////////

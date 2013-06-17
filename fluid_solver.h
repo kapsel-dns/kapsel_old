@@ -219,7 +219,7 @@ inline void Calc_hydro_stress(const CTime &jikan
     }
     
     static const double dmy = (double)ivolume/jikan.dt_fluid; //Select this 
-    stress[1][0]=stress_yx*dmy;
+    stress[1][0]=-stress_yx*dmy;
     
 }
 #endif

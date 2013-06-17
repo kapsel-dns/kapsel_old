@@ -207,6 +207,7 @@ inline void U2u_oblique(double **uu) {
     int im_ob;
     int im_ob_p;
 
+#pragma omp parallel for schedule(dynamic, 1) private(im, im_ob, im_ob_p)
     for (int i = 0; i <NX; i++) {
 	for (int j = 0; j <NY; j++) {
 	    for (int k = 0; k <NZ; k++) {
@@ -219,6 +220,7 @@ inline void U2u_oblique(double **uu) {
 	}
     }
     
+#pragma omp parallel for schedule(dynamic, 1) private(im, im_ob, im_ob_p)
     for (int i = 0; i < NX; i++) {
 	for (int j = 0; j < NY; j++) {
 
@@ -266,6 +268,7 @@ inline void U_oblique2u(double **uu) {
     int im_ob;
     int im_p;
 
+#pragma omp parallel for schedule(dynamic, 1) private(im, im_ob, im_p)
     for (int i = 0; i <NX; i++) {
 	for (int j = 0; j <NY; j++) {
 	    for (int k = 0; k <NZ_; k++) {
@@ -278,6 +281,7 @@ inline void U_oblique2u(double **uu) {
 	}
     }
 
+#pragma omp parallel for schedule(dynamic, 1) private(im, im_ob, im_p)
     for (int i = 0; i < NX; i++) {
 	for (int j = 0; j < NY; j++) {
 
@@ -324,6 +328,7 @@ inline void contra2co(double **contra) {
 
     int im;
 
+#pragma omp parallel for schedule(dynamic, 1) private(im)
     for (int i = 0; i < NX; i++) {
 	for (int j = 0; j < NY; j++) {
 	    for (int k = 0; k < NZ_; k++) {
@@ -336,6 +341,7 @@ inline void contra2co(double **contra) {
 	}
     }
 
+#pragma omp parallel for schedule(dynamic, 1) private(im)
     for (int i = 0; i < NX; i++) {
 	for (int j = 0; j < NY; j++) {
 	    for (int k = 0; k < NZ_; k++) {
@@ -357,7 +363,7 @@ inline void contra2co(double **contra) {
 inline void co2contra(double **contra) {
 
     int im;
-
+#pragma omp parallel for schedule(dynamic, 1) private(im)
     for (int i = 0; i < NX; i++) {
 	for (int j = 0; j < NY; j++) {
 	    for (int k = 0; k < NZ_; k++) {
@@ -370,6 +376,7 @@ inline void co2contra(double **contra) {
 	}
     }
 
+#pragma omp parallel for schedule(dynamic, 1) private(im)
     for (int i = 0; i < NX; i++) {
 	for (int j = 0; j < NY; j++) {
 	    for (int k = 0; k < NZ_; k++) {

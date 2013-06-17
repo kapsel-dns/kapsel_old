@@ -168,15 +168,8 @@ void Omega_k2zeta_k(double **omega, double **zetak){
     }
   }
 }
-/*!
-  \warning If FIX_CELL is not set, the zero wave-number component is
-  allowed to be non-null. Usefull for fixed-particle calculations
- */
- if(FIX_CELL){
-  assert(zetak[0][0] == 0.0); 
-  assert(zetak[1][0] == 0.0); 
-}
-
+ assert(zetak[0][0] == 0.0); 
+ assert(zetak[1][0] == 0.0); 
 }
 
 void Omega_k2zeta_k_OBL(double **omega, double **zetak){

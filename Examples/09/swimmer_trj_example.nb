@@ -1,0 +1,757 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 9.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       157,          7]
+NotebookDataLength[     29459,        748]
+NotebookOptionsPosition[     28829,        722]
+NotebookOutlinePosition[     29187,        738]
+CellTagsIndexPosition[     29144,        735]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Graphics Primitives", "Title",
+ CellChangeTimes->{{3.579604800555833*^9, 3.5796048055954437`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ClearAll", "[", 
+   RowBox[{"drawParticle", ",", "drawParticleX", ",", "readTrj"}], "]"}], 
+  ";"}]], "Input",
+ CellChangeTimes->CompressedData["
+1:eJxTTMoPSmViYGAQBmIQzWJrbhVV+8pxstuSShD9fPulBhC9zOj5BBC94/Wv
+KWC6ZfM0EM1xa/EcEL3keOxiEB0yy385iC4wyVkLoi2PztgNov88LNsDpuNX
+HQfR+udLL4JopU2eP0F0FdP5/yB60aUFLNEgc3qF2UG0gAOrAIheI6EmDqKb
+A9bKgmgz/3BVEC2y6JcmiO47e08HRP+zmmoCot/d0TIF0RyVBzaD6Bs37oDp
+Bd0aTrFAWksw0BVEr7472xNEO/LuAtMZZYfcBNteOfZyFXmD6GNKj236Vr9y
+NL2cZgeijxbfdQXRdnFMHiAaAAzGmMk=
+  "]],
+
+Cell[BoxData[
+ RowBox[{"\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"drawParticle", "[", 
+     RowBox[{"pos_", ",", "dir_", ",", "radius_", ",", "color_", ",", 
+      RowBox[{"opacity_:", "1.0"}]}], "]"}], ":=", 
+    RowBox[{"Graphics3D", "[", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"Lighting", "\[Rule]", " ", "\"\<Neutral\>\""}], ",", 
+       RowBox[{"Specularity", "[", 
+        RowBox[{"White", ",", "20"}], "]"}], ",", 
+       RowBox[{"Opacity", "[", "opacity", "]"}], ",", "\[IndentingNewLine]", 
+       "color", ",", 
+       RowBox[{"Sphere", "[", 
+        RowBox[{"pos", ",", "radius"}], "]"}], ",", 
+       RowBox[{"Thickness", "[", "0.02", "]"}], ",", 
+       RowBox[{"Darker", "[", "Orange", "]"}], ",", 
+       RowBox[{"Arrowheads", "[", "0.02", "]"}], ",", 
+       RowBox[{"Arrow", "[", 
+        RowBox[{"Tube", "[", 
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{
+            RowBox[{"pos", "+", 
+             RowBox[{"radius", " ", "dir"}]}], ",", 
+            RowBox[{"pos", "+", 
+             RowBox[{"2", "radius", " ", "dir"}]}]}], "}"}], ",", "0.2"}], 
+         "]"}], "]"}], ",", "\[IndentingNewLine]", 
+       RowBox[{"Tube", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"pos", "-", 
+            RowBox[{"radius", " ", "dir"}]}], ",", " ", 
+           RowBox[{"pos", "-", 
+            RowBox[{"1.5", " ", "radius", " ", "dir"}]}]}], "}"}], ",", " ", 
+         "0.2"}], "]"}]}], "}"}], "]"}]}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"drawParticleX", "[", 
+     RowBox[{"pos_", ",", "dir_", ",", "radius_", ",", "color_", ",", 
+      RowBox[{"opacity_:", "1.0"}]}], "]"}], ":=", 
+    RowBox[{"Graphics3D", "[", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"Lighting", "\[Rule]", " ", "\"\<Neutral\>\""}], ",", 
+       RowBox[{"Specularity", "[", 
+        RowBox[{"White", ",", "20"}], "]"}], ",", 
+       RowBox[{"Opacity", "[", "opacity", "]"}], ",", "\[IndentingNewLine]", 
+       "color", ",", 
+       RowBox[{"Sphere", "[", 
+        RowBox[{"pos", ",", "radius"}], "]"}], ",", 
+       RowBox[{"Thickness", "[", "0.02", "]"}], ",", 
+       RowBox[{"Darker", "[", "Orange", "]"}]}], "}"}], "]"}]}]}]}]], "Input",\
+
+ CellChangeTimes->CompressedData["
+1:eJxTTMoPSmViYGAQBmIQzWJrbhVV+8pxstuSShD9fPulBhC9zOj5BBC94/Wv
+KWC6ZfM0EM1xa/EcEL3keOxiEB0yy385iC4wyVkLoi2PztgNov88LNsDpuNX
+HQfR+udLL4JopU2eP0F0FdP5/yB60aUFLNEgc3qF2UG0gAOrAIheI6EmDqKb
+A9bKgmgz/3BVEC2y6JcmiO47e08HRP+zmmoCot/d0TIF0RyVBzaD6Bs37oDp
+Bd0aTrFAWksw0BVEr7472xNEO/LuAtMZZYfcBNteOfZyFXmD6GNKj236Vr9y
+NL2cZgeijxbfdQXRdnFMHiAaAAzGmMk=
+  "]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Plots", "Title",
+ CellChangeTimes->{{3.5796048101402597`*^9, 3.579604823642908*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "trjPos", ",", "trjDir", ",", "radius", ",", "dt", ",", "anim", ",", 
+     "fname", ",", "skipSteps"}], "]"}], ";"}], 
+  "\[IndentingNewLine]"}]], "Input",
+ CellChangeTimes->{3.579604797046867*^9}],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"skipSteps", " ", "=", " ", "0"}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{"radius", " ", "=", " ", "5"}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{"dt", " ", "=", " ", "50"}], ";"}]}], "Input",
+ CellChangeTimes->{{3.579604825871155*^9, 3.579604845472724*^9}, {
+  3.579605327464579*^9, 3.579605328836111*^9}, {3.579607455008151*^9, 
+  3.579607456221794*^9}}],
+
+Cell["\<\
+trjPos[[i,j]] : position {x,y,z} of particle i at time j
+trjDir[[i,j]]  : swimming axis {e3_x, e3_y, e3_z} of particle i at time j\
+\>", "Text",
+ CellChangeTimes->{{3.5796049859606857`*^9, 3.579605032007533*^9}, {
+  3.5796050700896482`*^9, 3.579605118533452*^9}, {3.5796053555895977`*^9, 
+  3.5796054447246017`*^9}}],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"opp", "=", "0.1"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"anim", " ", "=", " ", 
+   RowBox[{"Table", "[", "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"Show", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"ListPointPlot3D", "[", 
+          RowBox[{
+           RowBox[{"{", "\[IndentingNewLine]", 
+            RowBox[{
+             RowBox[{"trjPos", "[", 
+              RowBox[{"[", 
+               RowBox[{"1", ",", 
+                RowBox[{
+                 RowBox[{"Max", "[", 
+                  RowBox[{"1", ",", 
+                   RowBox[{"t", "-", "dt"}]}], "]"}], ";;", "t"}]}], "]"}], 
+              "]"}], ",", "\[IndentingNewLine]", 
+             RowBox[{"trjPos", "[", 
+              RowBox[{"[", 
+               RowBox[{"2", ",", 
+                RowBox[{
+                 RowBox[{"Max", "[", 
+                  RowBox[{"1", ",", 
+                   RowBox[{"t", "-", "dt"}]}], "]"}], ";;", "t"}]}], "]"}], 
+              "]"}], ",", "\[IndentingNewLine]", 
+             RowBox[{"trjPos", "[", 
+              RowBox[{"[", 
+               RowBox[{"3", ",", 
+                RowBox[{
+                 RowBox[{"Max", "[", 
+                  RowBox[{"1", ",", 
+                   RowBox[{"t", "-", "dt"}]}], "]"}], ";;", "t"}]}], "]"}], 
+              "]"}]}], "}"}], "\[IndentingNewLine]", ",", 
+           RowBox[{"PlotStyle", "\[Rule]", " ", 
+            RowBox[{"{", 
+             RowBox[{"Red", ",", "Blue", ",", 
+              RowBox[{"Darker", "[", "Green", "]"}]}], "}"}]}], ",", 
+           RowBox[{"PlotRange", "\[Rule]", " ", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"{", 
+               RowBox[{"0", ",", "64"}], "}"}], ",", 
+              RowBox[{"{", 
+               RowBox[{"0", ",", "64"}], "}"}], ",", 
+              RowBox[{"{", 
+               RowBox[{"0", ",", "64"}], "}"}]}], "}"}]}], ",", 
+           RowBox[{"Ticks", "\[Rule]", " ", "None"}], ",", 
+           "\[IndentingNewLine]", 
+           RowBox[{"BoxRatios", "\[Rule]", " ", 
+            RowBox[{"{", 
+             RowBox[{"1", ",", "1", ",", "1"}], "}"}]}], ",", " ", 
+           RowBox[{"ViewPoint", "\[Rule]", " ", 
+            RowBox[{"{", 
+             RowBox[{"64", ",", 
+              RowBox[{"-", "48"}], ",", "26"}], "}"}]}], ",", 
+           RowBox[{"ViewAngle", "\[Rule]", "  ", 
+            RowBox[{"0.98", "\[Degree]"}]}]}], "]"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"drawParticle", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"1", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"1", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Red"}], "]"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"drawParticle", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"2", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"2", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Blue"}], "]"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"drawParticle", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"3", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"3", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", 
+           RowBox[{"Darker", "[", "Green", "]"}]}], "]"}], ",", 
+         "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"4", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"4", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"5", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"5", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"6", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"6", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"7", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"7", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"8", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"8", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"9", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"9", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"10", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"10", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"11", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"11", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"12", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"12", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"13", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"13", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"14", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"14", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"15", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"15", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"16", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"16", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"17", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"17", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"18", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"18", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"19", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"19", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"20", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"20", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"21", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"21", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"22", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"22", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"23", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"23", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"24", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"24", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"25", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"25", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"26", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"26", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"27", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"27", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"28", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"28", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"29", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"29", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"30", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"30", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"31", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"31", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"32", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"32", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"33", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"33", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"34", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"34", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"35", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"35", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"36", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"36", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"37", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"37", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"38", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"38", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"39", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"39", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"40", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"40", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"41", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"41", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"42", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"42", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"43", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"43", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"44", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"44", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"45", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"45", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"46", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"46", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"47", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"47", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"48", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"48", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"49", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"49", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}], 
+         ",", "\[IndentingNewLine]", 
+         RowBox[{"drawParticleX", "[", 
+          RowBox[{
+           RowBox[{"trjPos", "[", 
+            RowBox[{"[", 
+             RowBox[{"50", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"trjDir", "[", 
+            RowBox[{"[", 
+             RowBox[{"50", ",", "t"}], "]"}], "]"}], ",", 
+           RowBox[{"radius", "-", "1"}], ",", "Black", ",", "opp"}], "]"}]}], 
+        "\[IndentingNewLine]", "}"}], ",", 
+       RowBox[{"ImageSize", "\[Rule]", " ", "500"}]}], "\[IndentingNewLine]", 
+      "]"}], ",", "\[IndentingNewLine]", 
+     RowBox[{"{", 
+      RowBox[{"t", ",", "1", ",", "1001", ",", "2"}], "}"}]}], 
+    "\[IndentingNewLine]", "]"}]}], ";"}]}], "Input",
+ CellChangeTimes->{3.5796061603079977`*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Export", "[", 
+   RowBox[{"\"\<trj_squirm_phi0.1_a+2.avi\>\"", ",", " ", "anim"}], "]"}], 
+  ";"}]], "Input",
+ CellChangeTimes->{{3.579606087627027*^9, 3.579606107863879*^9}, {
+  3.5796061927812033`*^9, 3.579606193365117*^9}, {3.579607496420682*^9, 
+  3.579607497690262*^9}, {3.579607537922379*^9, 3.57960754163402*^9}}]
+}, Open  ]]
+},
+WindowSize->{861, 1327},
+WindowMargins->{{Automatic, 673}, {Automatic, 0}},
+FrontEndVersion->"9.0 for Mac OS X x86 (32-bit, 64-bit Kernel) (December 12, \
+2012)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[579, 22, 104, 1, 92, "Title"],
+Cell[686, 25, 526, 12, 28, "Input"],
+Cell[1215, 39, 2638, 64, 182, "Input"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[3890, 108, 90, 1, 92, "Title"],
+Cell[3983, 111, 278, 8, 46, "Input"],
+Cell[4264, 121, 380, 9, 63, "Input"],
+Cell[4647, 132, 326, 6, 49, "Text"],
+Cell[4976, 140, 23479, 570, 1083, "Input"],
+Cell[28458, 712, 355, 7, 28, "Input"]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)

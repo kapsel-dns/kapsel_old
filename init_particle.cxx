@@ -275,30 +275,6 @@ void Init_Particle(Particle *p){
         qtn_init(p[i].q_old, p[i].q);
       }
     }
-    // initialize rigid status
-    if(SW_PT == rigid){
-      init_set_xGs(p);
-      set_Rigid_MMs(p);
-      set_particle_vomegas(p);	// ### caution ### v.x, v.y, v.z are ignored and set Rigid_Velocities and Rigid_Omegas
-    }
-    // output p.x and p.v
-    for(int i=0; i<Particle_Number; i++){
-      double phi;
-      double nv[DIM];
-      rqtn_rv(phi, nv, p[i].q);      
-      fprintf(stderr,"# %d-th particle position (p_x, p_y, p_z)=(%g, %g, %g)\n",i,p[i].x[0],p[i].x[1],p[i].x[2]);
-      fprintf(stderr,"# %d-th particle velocity (p_vx, p_vy, p_vz)=(%g, %g, %g)\n",i,p[i].v[0],p[i].v[1],p[i].v[2]);
-      fprintf(stderr, "# %d-th particle orientation  (phi, nx, ny, nz) =(%g, %g, %g, %g)\n", 
-              i, phi*180.0/M_PI, nv[0], nv[1], nv[2]);
-      fprintf(stderr, "# %d-th particle [space frame] angular velocity  (p_wx, p_wy, p_wq) =(%g, %g, %g)",
-              i, p[i].omega[0], p[i].omega[1], p[i].omega[2]);
-      /*for(int rigidID=0; rigidID<Rigid_Number; rigidID++) 
-        fprintf(stderr, "debug: xGs[%d] = (%f, %f, %f)\n", rigidID, xGs[rigidID][0], xGs[rigidID][1], xGs[rigidID][2]);
-        for(int rigidID=0; rigidID<Rigid_Number; rigidID++) 
-        fprintf(stderr, "debug: Rigid_Masses[%d] = %f\n", rigidID, Rigid_Masses[rigidID]);*/
-    }
-
-    fprintf(stderr,"############################\n");
     if(!RESUMED){
       delete ufin;
     }
@@ -332,16 +308,16 @@ void Init_Particle(Particle *p){
   if(ROTATION){
     if(ORIENTATION == random_dir){
       for(int i = 0; i < Particle_Number; i++){
-	random_rqtn(p[i].q);
-	qtn_isnormal(p[i].q);
-	qtn_init(p[i].q_old, p[i].q);
+        random_rqtn(p[i].q);
+        qtn_isnormal(p[i].q);
+        qtn_init(p[i].q_old, p[i].q);
       }
     }else if(ORIENTATION == space_dir ||
-	     (ORIENTATION == user_dir && DISTRIBUTION != user_specify)){
+             (ORIENTATION == user_dir && DISTRIBUTION != user_specify)){
       for(int i = 0; i < Particle_Number; i++){
-	qtn_init(p[i].q, 1.0, 0.0, 0.0, 0.0);
-	qtn_isnormal(p[i].q);
-	qtn_init(p[i].q_old, p[i].q);
+        qtn_init(p[i].q, 1.0, 0.0, 0.0, 0.0);
+        qtn_isnormal(p[i].q);
+        qtn_init(p[i].q_old, p[i].q);
       }
     }else if(ORIENTATION == user_dir && DISTRIBUTION == user_specify){
       // do nothing orientation already read
@@ -381,7 +357,7 @@ void Init_Particle(Particle *p){
 	p[i].f_slip_previous[d] = 0.0;
 	p[i].fr[d] = 0.0;
 	p[i].fr_previous[d] = 0.0;
-
+        
 	p[i].omega[d] = 0.0e0 *RA();
 	p[i].omega_old[d] = 0.0;
 	p[i].omega_slip[d] = 0.0;
@@ -390,9 +366,9 @@ void Init_Particle(Particle *p){
 	p[i].torque_hydro1[d] = 0.0;
 	p[i].torque_slip[d] = 0.0;
 	p[i].torque_slip_previous[d] = 0.0;
-
+        
         p[i].momentum_depend_fr[d] = 0.0;
-
+        
 	p[i].mass_center[d] = 0.0;
 	p[i].surface_mass_center[d] = 0.0;
 	p[i].surface_dv[d] = 0.0;
@@ -400,11 +376,41 @@ void Init_Particle(Particle *p){
 	for(int l = 0; l < DIM; l++){
 	  p[i].inertia[d][l] = 0.0;
 	  p[i].surface_inertia[d][l] = 0.0;
+        }
       }
-    }
     }
     offset += Particle_Numbers[j]; 
   }
+
+  // initialize rigid status
+  if(SW_PT == rigid){
+    init_set_xGs(p);
+    set_Rigid_MMs(p);
+    init_Rigid_Coordinates(p);
+    
+    // Caution:  v.x, v.y, v.z are ignored and set to Rigid_Velocities and Rigid_Omegas regardless of boundary conditions
+    set_Particle_Velocities(p);	
+  }
+
+  {//set pinned particle velocities to zero
+    if(PINNING){
+      Pinning(p);
+    }
+  }
+
+  // output p.x and p.v
+  for(int i=0; i<Particle_Number; i++){
+    double phi;
+    double nv[DIM];
+    rqtn_rv(phi, nv, p[i].q);      
+    fprintf(stderr,"# %d-th particle position (p_x, p_y, p_z)=(%g, %g, %g)\n",i,p[i].x[0],p[i].x[1],p[i].x[2]);
+    fprintf(stderr,"# %d-th particle velocity (p_vx, p_vy, p_vz)=(%g, %g, %g)\n",i,p[i].v[0],p[i].v[1],p[i].v[2]);
+    fprintf(stderr, "# %d-th particle orientation  (phi, nx, ny, nz) =(%g, %g, %g, %g)\n", 
+            i, phi*180.0/M_PI, nv[0], nv[1], nv[2]);
+    fprintf(stderr, "# %d-th particle [space frame] angular velocity  (p_wx, p_wy, p_wq) =(%g, %g, %g)",
+              i, p[i].omega[0], p[i].omega[1], p[i].omega[2]);
+  }
+  fprintf(stderr,"############################\n");
 }
 void Show_parameter(AVS_parameters Avs_parameters, Particle *p){
   FILE *fp=stderr;
@@ -817,6 +823,7 @@ void Init_Rigid(Particle *p){
 		n += 1;
 	}
 	set_Rigid_MMs(p);
-	set_particle_vomegas(p);
+        init_Rigid_Coordinates(p);
+	set_Particle_Velocities(p);
 }
 

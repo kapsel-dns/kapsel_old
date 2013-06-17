@@ -1,12 +1,11 @@
-// kapsel v2.10
-//
+// kapsel v3.01
+// 2013/06/11
 
-// $Id: define.udf,v 2.1 2010/03/13 RY $
-//
 \begin{global_def}
 
-class Vector3d:{x: float y: float z: float}
-class Particle:{ R:Vector3d,  v:Vector3d}
+class Vector3d:{x: float, y: float, z: float}
+class Quaternion:{q0: float, q1: float, q2: float, q3: float}
+class Particle:{R:Vector3d,  v:Vector3d, q:Quaternion, omega:Vector3d}
 
 constitutive_eq: {
    type: select {'Navier_Stokes','Shear_Navier_Stokes','Shear_Navier_Stokes_Lees_Edwards', 'Electrolyte'}
@@ -18,7 +17,7 @@ constitutive_eq: {
       kBT:	double "temperature"
       alpha_v: 	double "correction coefficient of V"
       alpha_o: 	double "correction coefficient of Omega"
-   }
+   }//End Navier_Stokes
 
    Shear_Navier_Stokes: { 
       DX: 	double "lattice spacing (=1), fixed for all directions"
@@ -37,7 +36,7 @@ constitutive_eq: {
 	    Frequency: double "alternating frequenct"
 	}
       }
-   }
+   }//end Shear_Navier_Stokes
 
    Shear_Navier_Stokes_Lees_Edwards: { 
       DX: 	double "lattice spacing (=1), fixed for all directions"
@@ -80,7 +79,7 @@ constitutive_eq: {
 	    Onsager_coeff_negative_ion: double "Onsager coefficient of negative ion"
 	    Debye_length: double "Deby screening length in the unit of DX"
 	 }
-      }
+      } //End Add_salt
       Electric_field: {
 	 type: select {"ON","OFF"}
 	 ON: {
@@ -97,20 +96,26 @@ constitutive_eq: {
 		Frequency: double
 		}
 	 }
-      }
-   }
-}
+      } //End Electric Field
+   } // End Electrolyte
+} // End constitutive_eq
 
 object_type: {
-   type: select {'spherical_particle','chain'}
+   type: select {'spherical_particle','chain','rigid'}
 
    spherical_particle: { 
       Particle_spec[]:{
          Particle_number: int "number of colloidal particles"
          MASS_RATIO: double "mass density ratio colloid/solvent"
          Surface_charge: double "surface charge of colloid"
+	 janus_axis: select {'NONE', 'X', 'Y', 'Z'} "janus axis in body_fixed frame"
+	 janus_propulsion: select{'OFF', 'TUMBLER', 'SQUIRMER', 'OBSTACLE'}
+	 janus_force: Vector3d "self-propulsion force"
+	 janus_torque: Vector3d "self-propulsion torque"
+	 janus_slip_vel: float "Slip velocity coeff B1"
+	 janus_slip_mode: float "Blake squirmer mode B2/B1"
       }
-   }
+   }//end spherical_particle
 
    chain:{
       Chain_spec[]:{
@@ -118,6 +123,18 @@ object_type: {
          Chain_number: int "number of chains"
          MASS_RATIO: double "mass density ratio chain/solvent"
          Surface_charge: double "surface charge of colloid"
+	 janus_axis: select {'NONE', 'X', 'Y', 'Z'} "janus axis in body_fixed frame"
+      }
+   }
+   rigid:{
+      Rigid_spec[]:{
+         Beads_number: int "number of beads in a chain"
+         Chain_number: int "number of chains"
+         MASS_RATIO: double "mass density ratio chain/solvent"
+         Surface_charge: double "surface charge of colloid"
+         Rigid_motion: select {'fix','free'}
+         Rigid_velocity: Vector3d "speed of translation ### fix only ###"
+         Rigid_omega: Vector3d "angular velocity ### fix only ###"
       }
    }
 }
@@ -154,8 +171,6 @@ time_increment: {
 
 switch: {
    ROTATION: select {'ON','OFF'} "OFF: not solve rotation, ON: solve rotation"
-   HYDRO_int: select {'Correct','free draining','squeeze-lubrication and drain'} "(correct hydrodynamic interaction) OR (free draining) OR (free draining and squeeze mode of lubrication)"
-   Stokes: select {'with advection','w/o advection'}
    LJ_truncate: select {'ON','OFF','NONE'} "OFF:normal LJ, ON:WCA, NONE: no-intaction at all"
    INIT_distribution: {
       type: select {'uniform_random','random_walk','FCC','BCC','user_specify'} 
@@ -171,11 +186,14 @@ switch: {
          Particles[]: Particle
       }
    }
+   INIT_orientation: select {'user_specify', 'random', 'space_align'}
+   SLIP_tol: float "Tolerance for iterative slip convergence"
+   SLIP_iter: int "Maximum number of iterations for iterative slip convergence"
    FIX_CELL: {
       x: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
       y: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
       z: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
-   }
+      }
    pin: {
       type: select{"NO","YES"}
       YES:{pin[]: int
@@ -183,16 +201,7 @@ switch: {
           }
    }
 }
-									       
-boundary_condition: {
-   type: select {"z_dirichlet","full_periodic"}
-   z_dirichlet: {
-      wall_velocity_x: double [cm/s]		
-      wall_velocity_y: double [cm/s]		
-      wall_velocity_z: double [cm/s]		
-   }
-}
-	
+
 output: {
    GTS: int "interval between snapshots"
    Num_snap: int "number of snapshots"
@@ -208,14 +217,13 @@ output: {
 \end{global_def}
 
 \begin{def}
+class outParticle:{R:Vector3d,  R_raw:Vector3d, v:Vector3d, q:Quaternion, omega:Vector3d, 
+      		   f_hydro:Vector3d, torque_hydro:Vector3d, f_slip:Vector3d, torque_slip:Vector3d}
 E: float "total kinetic energy of the system"
 t: float "total time"
-//class Vector3d:{x: float y: float z: float}
-//class Particle:{ R:Vector3d,  v:Vector3d}      
-//class tensor:{xy: float yz: float zx: float xx: float yy: float}
-//class nspec:{ Concentration: float, Concentration_rhs0: float, Rho_ion: float}
-Particles[]: Particle
+Particles[]: outParticle
 \end{def}
+
 
 \begin{def}
 class sParticle:{ 
@@ -223,22 +231,23 @@ class sParticle:{
       v:Vector3d ,
       v_old:Vector3d ,
       f_hydro:Vector3d ,
+      f_hydro_previous:Vector3d ,
       f_hydro1:Vector3d ,
+      f_slip:Vector3d ,
+      f_slip_previous:Vector3d,
       fr:Vector3d ,
       fr_previous:Vector3d ,
-      fv:Vector3d ,
-      fv_previous:Vector3d ,
-      f_collison:Vector3d ,
-      f_collison_previous:Vector3d ,
       omega:Vector3d ,
       omega_old:Vector3d ,
       torque_hydro:Vector3d ,
+      torque_hydro_previous:Vector3d ,
       torque_hydro1:Vector3d ,
-      torquer:Vector3d ,
-      torquer_previous:Vector3d ,
-      torquev:Vector3d ,
-      torquev_previous:Vector3d
+      torque_slip:Vector3d,
+      torque_slip_previous:Vector3d,
+      q:Quaternion,
+      q_old:Quaternion
 }      
+
 class CTime:{
       ts:int
       time:float

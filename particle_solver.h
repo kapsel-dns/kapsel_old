@@ -14,7 +14,10 @@
 #include "input.h"
 #include "md_force.h"
 #include "rigid_body.h"
+#include "particle_rotation_solver.h"
 #include "rigid.h"
+#include "periodic_boundary.h"
+
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -101,7 +104,7 @@ inline void Force(Particle *p){
 	Add_f_gravity(p);
     }
     if(SW_PT == chain){
-	Calc_anharmonic_force_chain(p);
+      Calc_anharmonic_force_chain(p, Distance0);
     }
 }
 
@@ -119,8 +122,24 @@ inline void Force_OBL(Particle *p){
     }
     if(SW_PT == chain){
 	dev_shear_stress_lj +=
-	    Calc_anharmonic_force_chain_OBL(p);
+          Calc_anharmonic_force_chain(p, Distance0_OBL);
     }
     dev_shear_stress_lj *= Ivolume;
+}
+
+inline void Pinning(Particle *p){
+  if(SW_PT != rigid){
+#pragma omp parallel for schedule(dynamic, 1)
+    for(int i = 0; i < N_PIN; i++){
+      for(int d = 0; d < DIM; d++){
+        p[Pinning_Numbers[i]].v[d] = 0.0;
+      }
+    }
+    for(int i = 0; i < N_PIN_ROT; i++){
+      for(int d = 0; d < DIM; d++){
+        p[Pinning_ROT_Numbers[i]].omega[d] = 0.0;
+      }
+    }
+  }
 }
 #endif
