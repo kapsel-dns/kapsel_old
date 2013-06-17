@@ -414,7 +414,21 @@ inline void Set_global_parameters(void){
     if(SW_JANUS_SLIP){
       for(int i = 0; i < Component_Number; i++){
 	janus_slip_mode[i] /= 2.0; // \alpha/2 = B_2/(2*B_1)
-}
+      }
+    }
+
+    //Check if pinned particles exist
+    for(int i = 0; i < N_PIN; i++){
+      if( Pinning_Numbers[i] < 0 || Pinning_Numbers[i] >= Particle_Number){
+        fprintf(stderr, "# Error: trying to pin non existing particle (%d/%d)\n!", Pinning_Numbers[i], Particle_Number);
+        exit_job(EXIT_FAILURE);
+      }
+    }
+    for(int i = 0; i < N_PIN_ROT; i++){
+      if( Pinning_ROT_Numbers[i] < 0 || Pinning_ROT_Numbers[i] >= Particle_Number){
+        fprintf(stderr, "# Error: trying to rot-pin non existing particle (%d/%d)\n!", Pinning_ROT_Numbers[i], Particle_Number);
+        exit_job(EXIT_FAILURE);
+      }
     }
 }
 
