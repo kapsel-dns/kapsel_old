@@ -1,5 +1,5 @@
-// kapsel v3.0
-// 2013/01/13
+// kapsel v3.02
+// 2013/07/01
 
 \include{"define.udf"}
 \begin{data}
@@ -270,8 +270,14 @@ switch:
   "space_align"                         //INIT_orientation
   0.01                                  //Slip_tolerance
   4                                     //Slip_iterations
-  "NO"                                  //Pinned particles
   {"ON","ON","ON"}                      //Fix_cell
+ {
+  "NO",
+  {
+   []
+   []
+  }
+ }
 }
 
 output:
@@ -294,6 +300,7 @@ resume:{
    {0,0.0}                              // jikan:CTime
    []                                   // Particles:sParticle
    []                                   // Zeta[][][]:{zeta0,zeta1}
+   []
    {0.0,0.0,0.0}                        // uk_dc
    []                                   // Concentration[][][]:{float}
    {0.0}                                // oblique: float

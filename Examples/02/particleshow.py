@@ -1,9 +1,12 @@
+showRigidCOM=0
 type=$constitutive_eq.type
 print type
 if type == "Navier_Stokes" :
 	dx=$constitutive_eq.Navier_Stokes.DX
 elif type == "Shear_Navier_Stokes" :
 	dx=$constitutive_eq.Shear_Navier_Stokes.DX
+elif type == "Shear_Navier_Stokes_Lees_Edwards" :
+	dx=$constitutive_eq.Shear_Navier_Stokes_Lees_Edwards.DX
 elif type == "Electrolyte" :
 	dx=$constitutive_eq.Electrolyte.DX
 NX=2**$mesh.NPX
@@ -17,6 +20,8 @@ if objType=="spherical_particle":
 	Ns=getArray($object_type.spherical_particle.Particle_spec[])
 elif objType=="chain":
 	Ns=getArray($object_type.chain.Chain_spec[])
+elif objType == "rigid":
+	Ns=getArray($object_type.rigid.Rigid_spec[])
 size_Ns=len(Ns)
 RAD=($A*dx)*1.
 for i in range(size_Ns):
@@ -40,8 +45,30 @@ spat=[
 	[1,1,1.0,1.0,RAD]
 	]
 n_offset = 0
-for i in range(size_Ns):
-	for n in range(Ns[i][0]):
-		r=$Particles[n_offset+n].R
-		sphere(r,spat[i%len(spat)])
-	n_offset += Ns[i][0]
+if objType=="rigid" or objType=="chain":
+        if showRigidCOM == 0:
+                #species
+                for i in range(size_Ns):
+                        #chains
+                        for m in range(Ns[i][1]):
+                                #beads
+                                for n in range(Ns[i][0]):
+                                        r=$Particles[n_offset+n].R
+                                        sphere(r,spat[i%len(spat)])
+                                n_offset += Ns[i][0]
+        elif showRigidCOM == 1:
+                #species
+                for i in range(size_Ns):
+                        #chains
+                        for m in range(Ns[i][1]):
+                                r=$RigidParticles[n_offset+m].R
+                                sphere(r,spat[i%len(spat)])
+                        n_offset+=Ns[i][1]
+else:
+        #species
+        for i in range(size_Ns):
+                #particles
+                for n in range(Ns[i][0]):
+                        r=$Particles[n_offset+n].R
+                        sphere(r,spat[i%len(spat)])
+                n_offset+=Ns[i][0]

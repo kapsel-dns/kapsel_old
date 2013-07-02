@@ -240,6 +240,9 @@ void Init_Particle(Particle *p){
       ufout->put(target.sub("R.x"),p[i].x[0]);
       ufout->put(target.sub("R.y"),p[i].x[1]);
       ufout->put(target.sub("R.z"),p[i].x[2]);
+      ufres->put(target.sub("R.x"),p[i].x[0]);
+      ufres->put(target.sub("R.y"),p[i].x[1]);
+      ufres->put(target.sub("R.z"),p[i].x[2]);
 
       ufin->get(target.sub("v.x"),p[i].v[0]);
       ufin->get(target.sub("v.y"),p[i].v[1]);
@@ -247,33 +250,41 @@ void Init_Particle(Particle *p){
       ufout->put(target.sub("v.x"),p[i].v[0]);
       ufout->put(target.sub("v.y"),p[i].v[1]);
       ufout->put(target.sub("v.z"),p[i].v[2]);
+      ufres->put(target.sub("v.x"),p[i].v[0]);
+      ufres->put(target.sub("v.y"),p[i].v[1]);
+      ufres->put(target.sub("v.z"),p[i].v[2]);
 
-      if(ROTATION && ORIENTATION == user_dir){
-	double q0,q1,q2,q3;
-	ufin->get(target.sub("q.q0"), q0);
-	ufin->get(target.sub("q.q1"), q1);
-	ufin->get(target.sub("q.q2"), q2);
-	ufin->get(target.sub("q.q3"), q3);
-	ufout->put(target.sub("q.q0"), q0);
-	ufout->put(target.sub("q.q1"), q1);
-	ufout->put(target.sub("q.q2"), q2);
-	ufout->put(target.sub("q.q3"), q3);
-	qtn_init(p[i].q, q0, q1, q2, q3);
+      double q0,q1,q2,q3;
+      ufin->get(target.sub("q.q0"), q0);
+      ufin->get(target.sub("q.q1"), q1);
+      ufin->get(target.sub("q.q2"), q2);
+      ufin->get(target.sub("q.q3"), q3);
+      ufout->put(target.sub("q.q0"), q0);
+      ufout->put(target.sub("q.q1"), q1);
+      ufout->put(target.sub("q.q2"), q2);
+      ufout->put(target.sub("q.q3"), q3);
+      ufres->put(target.sub("q.q0"), q0);
+      ufres->put(target.sub("q.q1"), q1);
+      ufres->put(target.sub("q.q2"), q2);
+      ufres->put(target.sub("q.q3"), q3);
+      qtn_init(p[i].q, q0, q1, q2, q3);
+      
+      ufin->get(target.sub("omega.x"), p[i].omega[0]);
+      ufin->get(target.sub("omega.y"), p[i].omega[1]);
+      ufin->get(target.sub("omega.z"), p[i].omega[2]);
+      ufout->put(target.sub("omega.x"), p[i].omega[0]);
+      ufout->put(target.sub("omega.y"), p[i].omega[1]);
+      ufout->put(target.sub("omega.z"), p[i].omega[2]);
+      ufres->put(target.sub("omega.x"), p[i].omega[0]);
+      ufres->put(target.sub("omega.y"), p[i].omega[1]);
+      ufres->put(target.sub("omega.z"), p[i].omega[2]);
 
-	ufin->get(target.sub("omega.x"), p[i].omega[0]);
-	ufin->get(target.sub("omega.y"), p[i].omega[1]);
-	ufin->get(target.sub("omega.z"), p[i].omega[2]);
-	ufout->put(target.sub("omega.x"), p[i].omega[0]);
-	ufout->put(target.sub("omega.y"), p[i].omega[1]);
-	ufout->put(target.sub("omega.z"), p[i].omega[2]);
-        
-	qtn_normalize(p[i].q);
-	qtn_init(p[i].q_old, p[i].q);
+      if(ORIENTATION == user_dir){
+        qtn_normalize(p[i].q);
       }else{
         qtn_init(p[i].q, 1.0, 0.0, 0.0, 0.0);
-        qtn_isnormal(p[i].q);
-        qtn_init(p[i].q_old, p[i].q);
       }
+      qtn_init(p[i].q_old, p[i].q);
     }
     if(!RESUMED){
       delete ufin;
@@ -388,8 +399,7 @@ void Init_Particle(Particle *p){
     set_Rigid_MMs(p);
     init_Rigid_Coordinates(p);
     
-    // Caution:  v.x, v.y, v.z are ignored and set to Rigid_Velocities and Rigid_Omegas regardless of boundary conditions
-    set_Particle_Velocities(p);	
+    init_set_vGs(p);
   }
 
   {//set pinned particle velocities to zero
@@ -407,7 +417,7 @@ void Init_Particle(Particle *p){
     fprintf(stderr,"# %d-th particle velocity (p_vx, p_vy, p_vz)=(%g, %g, %g)\n",i,p[i].v[0],p[i].v[1],p[i].v[2]);
     fprintf(stderr, "# %d-th particle orientation  (phi, nx, ny, nz) =(%g, %g, %g, %g)\n", 
             i, phi*180.0/M_PI, nv[0], nv[1], nv[2]);
-    fprintf(stderr, "# %d-th particle [space frame] angular velocity  (p_wx, p_wy, p_wq) =(%g, %g, %g)",
+    fprintf(stderr, "# %d-th particle [space frame] angular velocity  (p_wx, p_wy, p_wq) =(%g, %g, %g)\n",
               i, p[i].omega[0], p[i].omega[1], p[i].omega[2]);
   }
   fprintf(stderr,"############################\n");
@@ -775,7 +785,11 @@ void Init_Rigid(Particle *p){
 					xGs[rigidID][0] = p[n-1].x[0] + dmy0*sin(dmy1)*cos(dmy2);
 					xGs[rigidID][1] = p[n-1].x[1] + dmy0*sin(dmy1)*sin(dmy2);
 					xGs[rigidID][2] = p[n-1].x[2] + dmy0*cos(dmy1);
-					for(int d=0; d<DIM; d++) xGs[rigidID][d] = fmod(xGs[rigidID][d] + 100.*L_particle[d], L_particle[d]);
+					for(int d=0; d<DIM; d++) {
+                                          xGs[rigidID][d] = fmod(xGs[rigidID][d] + 100.*L_particle[d], L_particle[d]);
+                                          xGs_nopbc[rigidID][d] = xGs[rigidID][d];
+                                          xGs_previous[rigidID][d] = xGs[rigidID][d];
+                                        }
 					if(Rigid_Particle_Numbers[rigidID] % 2 == 0){
 						GRvecs[n-1][0] = - (Rigid_Particle_Numbers[rigidID]/2 - 0.5) * dmy0*sin(dmy1)*cos(dmy2);
 						GRvecs[n-1][1] = - (Rigid_Particle_Numbers[rigidID]/2 - 0.5) * dmy0*sin(dmy1)*sin(dmy2);
@@ -824,6 +838,6 @@ void Init_Rigid(Particle *p){
 	}
 	set_Rigid_MMs(p);
         init_Rigid_Coordinates(p);
-	set_Particle_Velocities(p);
+	init_set_vGs(p);
 }
 

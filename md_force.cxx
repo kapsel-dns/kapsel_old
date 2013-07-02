@@ -115,7 +115,7 @@ double Calc_f_Lennard_Jones_shear_cap_primitive_lnk(Particle *p
 					  if(SW_minrij){
 					      Max_force = MAX(sqrt(dmyf),Max_force);
 					  }
-					  shear_stress += ((dmy * -r_ij_vec[0])* (-r_ij_vec[1]));
+					  shear_stress += ((dmy * -r_ij_vec[0])* (r_ij_vec[1]));
 				      }
 				  }
 				  j = lscl[j];
@@ -171,7 +171,7 @@ double Calc_f_Lennard_Jones_shear_cap_primitive(Particle *p
 		if(SW_minrij){
 		    Max_force = MAX(sqrt(dmyf),Max_force);
 		}
-		shear_stress += ((dmy * -r_ij_vec[0])* (-r_ij_vec[1]));
+		shear_stress += ((dmy * -r_ij_vec[0])* (r_ij_vec[1]));
 	    }
 	}
     }

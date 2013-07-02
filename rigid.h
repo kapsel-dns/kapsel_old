@@ -43,6 +43,15 @@ inline void init_set_xGs(Particle *p){
     }
   }
 
+  //set raw (no-pbc) coordinates for rigid particles
+#pragma omp parallel for schedule(dynamic, 1)
+  for(int rigidID=0; rigidID<Rigid_Number; rigidID++){
+    for(int d = 0; d < DIM; d++){
+      xGs_nopbc[rigidID][d] = xGs[rigidID][d];
+      xGs_previous[rigidID][d] = xGs[rigidID][d];
+    }
+  }
+
   //place rigid particles (and beads) inside simulation box
   if(SW_EQ != Shear_Navier_Stokes_Lees_Edwards){
 #pragma omp parallel for schedule(dynamic, 1)
@@ -188,6 +197,13 @@ inline void set_Particle_Velocities_OBL(Particle *p){
     p[n].v[0] += delta_vx;
   }
 }
+inline void init_set_vGs(Particle *p){
+  if(SW_EQ != Shear_Navier_Stokes_Lees_Edwards){
+    set_Particle_Velocities(p);
+  }else{
+    set_Particle_Velocities_OBL(p);
+  }
+}
 
 /*!
   \brief rotate GRvecs to match current orientation of rigid body
@@ -207,6 +223,7 @@ inline void update_GRvecs(Particle *p){
     }
   }
 }
+
 
 /*! 
   \brief Set masses and inertia tensors for current rigid body configurations
@@ -263,15 +280,18 @@ inline void solver_Rigid_Position(Particle *p, const CTime &jikan, string CASE){
 
   int rigid_first_n;
   int rigid_last_n;
+  double delta_x;
   if(CASE == "Euler"){
-#pragma opm parallel for schedule(dynamic, 1) private(rigid_first_n, rigid_last_n)
+#pragma omp parallel for schedule(dynamic, 1) private(rigid_first_n, rigid_last_n, delta_x)
     for(int rigidID=0; rigidID<Rigid_Number; rigidID++){
-      if(Rigid_Motions[ RigidID_Components[rigidID] ] == 0) continue;	// if "fix"
 
       //center of mass
       for(int d=0; d<DIM; d++){
         xGs_previous[rigidID][d] = xGs[rigidID][d];
-        xGs[rigidID][d] += jikan.dt_md * velocityGs[rigidID][d];
+
+        delta_x = jikan.dt_md * velocityGs[rigidID][d];
+        xGs[rigidID][d] += delta_x;
+        xGs_nopbc[rigidID][d] += delta_x;
       }
       PBC(xGs[rigidID]);
 
@@ -288,14 +308,16 @@ inline void solver_Rigid_Position(Particle *p, const CTime &jikan, string CASE){
     }
 
   }else if(CASE == "AB2"){
-#pragma omp parallel for schedule(dynamic, 1) private(rigid_first_n, rigid_last_n)
+#pragma omp parallel for schedule(dynamic, 1) private(rigid_first_n, rigid_last_n, delta_x)
     for(int rigidID=0; rigidID<Rigid_Number; rigidID++){
-      if(Rigid_Motions[ RigidID_Components[rigidID] ] == 0) continue;   // if "fix"
 
       //center of mass
       for(int d=0; d<DIM; d++){
         xGs_previous[rigidID][d] = xGs[rigidID][d];
-        xGs[rigidID][d] += jikan.hdt_md * (3.0 * velocityGs[rigidID][d] - velocityGs_old[rigidID][d]);
+
+        delta_x = jikan.hdt_md * (3.0 * velocityGs[rigidID][d] - velocityGs_old[rigidID][d]);
+        xGs[rigidID][d] += delta_x;
+        xGs_nopbc[rigidID][d] += delta_x;
       }
       PBC(xGs[rigidID]);
       
@@ -330,16 +352,18 @@ inline void solver_Rigid_Position_OBL(Particle *p, const CTime &jikan, string CA
   int sign;
   int rigid_first_n;
   int rigid_last_n;
-  double delta_vx;
+  double delta_x, delta_vx;
   if(CASE == "Euler"){
-#pragma opm parallel for schedule(dynamic, 1) private(rigid_first_n, rigid_last_n, sign, delta_vx)
+#pragma omp parallel for schedule(dynamic, 1) private(rigid_first_n, rigid_last_n, sign, delta_x, delta_vx)
     for(int rigidID=0; rigidID<Rigid_Number; rigidID++){
-      if(Rigid_Motions[ RigidID_Components[rigidID] ] == 0) continue;	// if "fix"
 
       //center of mass
       for(int d=0; d<DIM; d++){
         xGs_previous[rigidID][d] = xGs[rigidID][d];
-        xGs[rigidID][d] += jikan.dt_md * velocityGs[rigidID][d];
+
+        delta_x = jikan.dt_md * velocityGs[rigidID][d];
+        xGs[rigidID][d] += delta_x;
+        xGs_nopbc[rigidID][d] += delta_x;
       }
       sign = PBC_OBL(xGs[rigidID], delta_vx);
       velocityGs[rigidID][0] += delta_vx;
@@ -358,14 +382,16 @@ inline void solver_Rigid_Position_OBL(Particle *p, const CTime &jikan, string CA
     }
 
   }else if(CASE == "AB2"){
-#pragma omp parallel for schedule(dynamic, 1) private(rigid_first_n, rigid_last_n, sign, delta_vx)
+#pragma omp parallel for schedule(dynamic, 1) private(rigid_first_n, rigid_last_n, sign, delta_x, delta_vx)
     for(int rigidID=0; rigidID<Rigid_Number; rigidID++){
-      if(Rigid_Motions[ RigidID_Components[rigidID] ] == 0) continue;   // if "fix"
 
       //center of mass
       for(int d=0; d<DIM; d++){
         xGs_previous[rigidID][d] = xGs[rigidID][d];
-        xGs[rigidID][d] += jikan.hdt_md * (3.0 * velocityGs[rigidID][d] - velocityGs_old[rigidID][d]);
+
+        delta_x = jikan.hdt_md * (3.0 * velocityGs[rigidID][d] - velocityGs_old[rigidID][d]);
+        xGs[rigidID][d] += delta_x;
+        xGs_nopbc[rigidID][d] += delta_x;
       }
       sign = PBC_OBL(xGs[rigidID], delta_vx);
       velocityGs[rigidID][0] += delta_vx;
@@ -398,8 +424,6 @@ inline void solver_Rigid_Position_OBL(Particle *p, const CTime &jikan, string CA
   \note set_Rigid_VOGs() after calculating xGs, Rigid_IMoments, forceGs and torqueGs!!
 */
 inline void calc_Rigid_VOGs(Particle *p, const CTime &jikan, string CASE){
-  //set_Rigid_MMs(p);
-  //calc forceGrs, forceGvs
 #pragma omp parallel for schedule(dynamic, 1)
   for(int rigidID=0; rigidID<Rigid_Number; rigidID++){
     
@@ -481,14 +505,17 @@ inline void calc_Rigid_VOGs(Particle *p, const CTime &jikan, string CASE){
 #pragma omp parallel for schedule(dynamic, 1)
   for(int rigidID=0; rigidID<Rigid_Number; rigidID++){
     for(int d=0; d<DIM; d++){
+      forceGs_previous[rigidID][d] = forceGs[rigidID][d];
       forceGrs_previous[rigidID][d] = forceGrs[rigidID][d];
+
+      torqueGs_previous[rigidID][d] = torqueGs[rigidID][d];
       torqueGrs_previous[rigidID][d] = torqueGrs[rigidID][d];
 
-      forceGrs[rigidID][d] = 0.0;
       forceGs[rigidID][d] = 0.0;
+      forceGrs[rigidID][d] = 0.0;
 
-      torqueGrs[rigidID][d] = 0.0;
       torqueGs[rigidID][d] = 0.0;
+      torqueGrs[rigidID][d] = 0.0;
     }
   }
 }

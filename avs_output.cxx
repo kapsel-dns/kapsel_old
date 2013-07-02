@@ -381,12 +381,70 @@ void Output_udf(UDFManager *ufout
     ufout->put(target.sub("torque_hydro.y"), p[j].torque_hydro_previous[1]);
     ufout->put(target.sub("torque_hydro.z"), p[j].torque_hydro_previous[2]);
 
+    ufout->put(target.sub("f_r.x"), p[j].fr_previous[0]);
+    ufout->put(target.sub("f_r.y"), p[j].fr_previous[1]);
+    ufout->put(target.sub("f_r.z"), p[j].fr_previous[2]);
+    ufout->put(target.sub("torque_r.x"), 0.0);
+    ufout->put(target.sub("torque_r.y"), 0.0);
+    ufout->put(target.sub("torque_r.z"), 0.0);
+
+
     ufout->put(target.sub("f_slip.x"), p[j].f_slip_previous[0]);
     ufout->put(target.sub("f_slip.y"), p[j].f_slip_previous[1]);
     ufout->put(target.sub("f_slip.z"), p[j].f_slip_previous[2]);
     ufout->put(target.sub("torque_slip.x"), p[j].torque_slip_previous[0]);
     ufout->put(target.sub("torque_slip.y"), p[j].torque_slip_previous[1]);
     ufout->put(target.sub("torque_slip.z"), p[j].torque_slip_previous[2]);
+  }
+  if(SW_PT == rigid){
+    for(int rigidID = 0; rigidID < Rigid_Number; rigidID++){
+      char str[256];
+      sprintf(str, "RigidParticles[%d]", rigidID);
+      Location target(str);
+
+      int rigid_first_n = Rigid_Particle_Cumul[rigidID];
+      quaternion qGs;
+      qtn_init(qGs, p[rigid_first_n].q);
+
+      ufout->put(target.sub("R.x"), xGs[rigidID][0]);
+      ufout->put(target.sub("R.y"), xGs[rigidID][1]);
+      ufout->put(target.sub("R.z"), xGs[rigidID][2]);
+      ufout->put(target.sub("R_raw.x"), xGs_nopbc[rigidID][0]);
+      ufout->put(target.sub("R_raw.y"), xGs_nopbc[rigidID][1]);
+      ufout->put(target.sub("R_raw.z"), xGs_nopbc[rigidID][2]);
+      ufout->put(target.sub("v.x"), velocityGs[rigidID][0]);
+      ufout->put(target.sub("v.y"), velocityGs[rigidID][1]);
+      ufout->put(target.sub("v.z"), velocityGs[rigidID][2]);
+
+      ufout->put(target.sub("q.q0"), qtn_q0(qGs));
+      ufout->put(target.sub("q.q1"), qtn_q1(qGs));
+      ufout->put(target.sub("q.q2"), qtn_q2(qGs));
+      ufout->put(target.sub("q.q3"), qtn_q3(qGs));
+      ufout->put(target.sub("omega.x"), omegaGs[rigidID][0]);
+      ufout->put(target.sub("omega.y"), omegaGs[rigidID][1]);
+      ufout->put(target.sub("omega.z"), omegaGs[rigidID][2]);
+
+      ufout->put(target.sub("f_hydro.x"), forceGs_previous[rigidID][0]);
+      ufout->put(target.sub("f_hydro.y"), forceGs_previous[rigidID][1]);
+      ufout->put(target.sub("f_hydro.z"), forceGs_previous[rigidID][2]);
+      ufout->put(target.sub("torque_hydro.x"), torqueGs_previous[rigidID][0]);
+      ufout->put(target.sub("torque_hydro.y"), torqueGs_previous[rigidID][1]);
+      ufout->put(target.sub("torque_hydro.z"), torqueGs_previous[rigidID][2]);
+
+      ufout->put(target.sub("f_r.x"), forceGrs_previous[rigidID][0]);
+      ufout->put(target.sub("f_r.y"), forceGrs_previous[rigidID][1]);
+      ufout->put(target.sub("f_r.z"), forceGrs_previous[rigidID][2]);
+      ufout->put(target.sub("torque_r.x"), torqueGrs_previous[rigidID][0]);
+      ufout->put(target.sub("torque_r.y"), torqueGrs_previous[rigidID][1]);
+      ufout->put(target.sub("torque_r.z"), torqueGrs_previous[rigidID][2]);
+
+      ufout->put(target.sub("f_slip.x"), 0.0);
+      ufout->put(target.sub("f_slip.y"), 0.0);
+      ufout->put(target.sub("f_slip.z"), 0.0);
+      ufout->put(target.sub("torque_slip.x"), 0.0);
+      ufout->put(target.sub("torque_slip.y"), 0.0);
+      ufout->put(target.sub("torque_slip.z"), 0.0);
+    }
   }
 }
 

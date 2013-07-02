@@ -1,5 +1,5 @@
-// kapsel v3.0
-// 2013/01/13
+// kapsel v3.02
+// 2013/07/01
 
 \begin{global_def}
 
@@ -189,12 +189,17 @@ switch: {
    INIT_orientation: select {'user_specify', 'random', 'space_align'}
    SLIP_tol: float "Tolerance for iterative slip convergence"
    SLIP_iter: int "Maximum number of iterations for iterative slip convergence"
-   pin: select{'NO','YES'} "pin particles"
    FIX_CELL: {
       x: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
       y: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
       z: select{'ON','OFF'}"OFF:w/o DC current, ON:with DC current"
       }
+   pin: {
+      type: select{"NO","YES"}
+      YES:{pin[]: int
+           pin_rot[]: int
+          }
+   }
 }
 
 output: {
@@ -212,11 +217,15 @@ output: {
 \end{global_def}
 
 \begin{def}
-class outParticle:{R:Vector3d,  R_raw:Vector3d, v:Vector3d, q:Quaternion, omega:Vector3d, 
-      		   f_hydro:Vector3d, torque_hydro:Vector3d, f_slip:Vector3d, torque_slip:Vector3d}
+class outParticle:{R:Vector3d,  R_raw:Vector3d, v:Vector3d, 
+                   q:Quaternion, omega:Vector3d, 
+      		   f_hydro:Vector3d, torque_hydro:Vector3d, 
+                   f_r:Vector3d, torque_r:Vector3d,
+                   f_slip:Vector3d, torque_slip:Vector3d}
 E: float "total kinetic energy of the system"
 t: float "total time"
 Particles[]: outParticle
+RigidParticles[]: outParticle
 \end{def}
 
 
@@ -256,6 +265,7 @@ resume:{
       Saved_Data:{
          jikan: CTime
          Particles[]: sParticle
+         GR_body[]: Vector3d
          Zeta[][][]:{
             zeta0: float
             zeta1: float

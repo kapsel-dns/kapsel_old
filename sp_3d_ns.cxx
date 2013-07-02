@@ -301,6 +301,7 @@ void Time_evolution_hydro_OBL(double **zeta, double uk_dc[DIM], double **f, Part
 	    }
 	    
 	    degree_oblique -= 1.;
+#pragma omp parallel for schedule(dynamic, 1) private(im)
 	    for(int i = 0; i < NX; i++){
 		for(int j = 0; j < NY; j++){
 		    for(int k = 0; k < NZ; k++){
@@ -317,6 +318,7 @@ void Time_evolution_hydro_OBL(double **zeta, double uk_dc[DIM], double **f, Part
 
 	U_oblique2u(ucp);
 
+#pragma omp parallel for schedule(dynamic, 1) private(im)
 	for (int i=0; i<NX; i++) {
 	    for(int j=0; j<NY; j++){
 		for(int k=0; k<NZ_; k++){
