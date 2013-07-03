@@ -1,7 +1,7 @@
-// kapsel v3.0
-// 2013/01/13
+// kapsel v3.02
+// 2013/07/01
 
-\include{"define_3.00.udf"}
+\include{"define.udf"}
 
 
 \begin{data}
@@ -38,8 +38,14 @@ switch:{
  "space_align",
  1.0000000e-001,
  2,
- "NO",
  {"ON","ON","ON"}
+ {
+  "NO",
+  {
+   []
+   []
+  }
+ }
 }
 output:{200,500,"ON",{"avs_ss","data","BINARY"}"ON"}
 resume:{
@@ -48,8 +54,8 @@ resume:{
   {
    {0,0.0}
    []
-   [
-   ]
+   []
+   []
    {0.0,0.0,0.0}
    [
    ]
