@@ -1,5 +1,15 @@
-// kapsel v3.02
-// 2013/07/01
+\begin{header}
+  \begin{def}
+    EngineType:string
+    EngineVersion:string
+    Comment:string
+  \end{def}
+  \begin{data}
+    EngineType:"Kapsel"
+    EngineVersion:"v3.02"
+    Comment:"2013/07/01"
+  \end{data}
+\end{header}
 
 \begin{global_def}
 

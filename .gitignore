@@ -6,7 +6,7 @@ run
 *.obj
 *~
 kapsel
-udf2xyz
 kapsel.exe
+udf2xyz
 udf2xyz.exe
 Synctoy*

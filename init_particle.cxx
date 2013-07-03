@@ -409,7 +409,7 @@ void Init_Particle(Particle *p){
   }
 
   // output p.x and p.v
-  for(int i=0; i<Particle_Number; i++){
+  /*for(int i=0; i<Particle_Number; i++){
     double phi;
     double nv[DIM];
     rqtn_rv(phi, nv, p[i].q);      
@@ -419,7 +419,7 @@ void Init_Particle(Particle *p){
             i, phi*180.0/M_PI, nv[0], nv[1], nv[2]);
     fprintf(stderr, "# %d-th particle [space frame] angular velocity  (p_wx, p_wy, p_wq) =(%g, %g, %g)\n",
               i, p[i].omega[0], p[i].omega[1], p[i].omega[2]);
-  }
+  }*/
   fprintf(stderr,"############################\n");
 }
 void Show_parameter(AVS_parameters Avs_parameters, Particle *p){

@@ -155,6 +155,7 @@ double *janus_slip_mode;
 
 /// debug flags
 int DBG_MASS_GRID;
+int DBG_LE_SHEAR;
 ////
 int Rigid_Number;
 int *Rigid_Motions;// 0(fix) or 1(free)
@@ -433,7 +434,6 @@ inline void Set_global_parameters(void){
 
 UDFManager *ufin;
 UDFManager *ufout;
-//UDFManager *ufsum;
 UDFManager *ufres;
 void Gourmet_file_io(const char *infile
 		     ,const char *outfile
@@ -476,6 +476,21 @@ void Gourmet_file_io(const char *infile
       if(file_check(resfile)) ufres= new UDFManager(resfile);
     */
     // --------------------------------------------------------
+
+    {//check udf version
+      string code_version="v3.02";
+      fprintf(stderr, "# Kapsel: UDF %s\n", code_version.c_str());
+
+      string udf_name = ufin->getEngineName();
+      string udf_version = ufin->getEngineVersion();
+      if(code_version != udf_version){
+        fprintf(stderr, "###############################################\n");
+        fprintf(stderr, "#                                             #\n");
+        fprintf(stderr, "#    Warning: Engine versions do not match    #\n");
+        fprintf(stderr, "#                                             #\n");
+        fprintf(stderr, "###############################################\n");
+      }
+    }
     
     /////// resumed or not
     {
@@ -1598,19 +1613,34 @@ void Gourmet_file_io(const char *infile
     }
     {
       DBG_MASS_GRID = 0;
-      /*
+      DBG_LE_SHEAR = 0;
+      int DEBUG_INFO = 0;
+      
       Location target("debug");
       string str;
-	    
-      ufin->get(target.sub("MASS_GRID"), str);
-      ufout->put(target.sub("MASS_GRID"), str);
-      ufres->put(target.sub("MASS_GRID"), str);
-	    if(str == "YES"){
-        DBG_MASS_GRID = 1;
-      }else{
-        DBG_MASS_GRID = 0;
-	    }
-      */
+
+      if(ufin->get(target.sub("MASS_GRID"), str)){
+        ufout->put(target.sub("MASS_GRID"), str);
+        ufres->put(target.sub("MASS_GRID"), str);
+        if(str == "YES"){
+          DBG_MASS_GRID = 1;
+          DEBUG_INFO = 1;
+        }
+      }
+      if(ufin->get(target.sub("LE_SHEAR"), str)){
+        ufout->put(target.sub("LE_SHEAR"), str);
+        ufres->put(target.sub("LE_SHEAR"), str);
+        if(str == "YES"){
+          DBG_LE_SHEAR = 1;
+          DEBUG_INFO = 1;
+        }
+      }
+      if(DEBUG_INFO){
+        fprintf(stderr, "################# DEBUGGING ###################\n");
+        if(DBG_MASS_GRID) fprintf(stderr, "# Detailed Mass Grid Calculations             #\n");
+        if(DBG_LE_SHEAR)  fprintf(stderr, "# Detailed LE Shear Calculations              #\n");
+        fprintf(stderr, "################# GNIGGUBED ###################\n");
+      }
     }
     
     { /////// output;
@@ -1754,6 +1784,7 @@ void Gourmet_file_io(const char *infile
                 }
 
 		//debug output
+                /*
 		for(int n=0; n<Particle_Number; n++){
 			fprintf(stderr, "# debug: Particle_RigidID[%d] = %d\n", n, Particle_RigidID[n]);
 		}
@@ -1765,6 +1796,7 @@ void Gourmet_file_io(const char *infile
                                 rigidID, Rigid_Particle_Numbers[rigidID],
                                 Rigid_Particle_Cumul[rigidID], Rigid_Particle_Cumul[rigidID+1] - 1);
 		}
+                */
 		
 		//initialize velocityGs and omegaGs and
 		int rigid_component;

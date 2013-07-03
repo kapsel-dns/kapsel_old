@@ -120,6 +120,7 @@ extern double *janus_slip_mode;
 
 //debug flags
 extern int DBG_MASS_GRID;
+extern int DBG_LE_SHEAR;
 
 extern char Out_dir[];
 extern char Out_name[];
