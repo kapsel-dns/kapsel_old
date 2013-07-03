@@ -431,10 +431,12 @@ void Calc_f_hydro_correct_precision_OBL(Particle *p, double const* const* u, con
     
     Reset_phi(Hydro_force);
     Reset_phi(Hydro_force_new);
-    Reset_phi(Hydro_force_new_u);
-    Reset_phi(Hydro_force_new_p);
-    Reset_phi(Hydro_force_new_v);
-    Reset_phi(Hydro_force_new_w);
+    if(DBG_LE_SHEAR){
+      Reset_phi(Hydro_force_new_u);
+      Reset_phi(Hydro_force_new_p);
+      Reset_phi(Hydro_force_new_v);
+      Reset_phi(Hydro_force_new_w);
+    }
 #pragma omp parallel for schedule(dynamic, 1)\
   private(xp,vp,omega_p,x_int,residue,sw_in_cell,force,torque,r_mesh,r,dmy_fp,x,\
           dmyR,dmy_phi,dmy_rhop,dmy_ry,v_rot,sign,im,forceg,torqueg) 
@@ -495,11 +497,13 @@ void Calc_f_hydro_correct_precision_OBL(Particle *p, double const* const* u, con
         dmy_ry = (r_mesh[1] + sign*L_particle[1]);
 #pragma omp atomic
         Hydro_force[im] += dmy_fp[0]*dmy_ry*dmy_rhop;//viscocity
-        
 #pragma omp atomic
         Hydro_force_new[im] += dmy_fp[0]*dmy_ry*dmy_rhop;
+        
+        if(DBG_LE_SHEAR){
 #pragma omp atomic
-        Hydro_force_new_u[im] += dmy_fp[0]*dmy_ry*dmy_rhop;
+          Hydro_force_new_u[im] += dmy_fp[0]*dmy_ry*dmy_rhop;
+        }
 
         volume[n] += dmy_phi;
         Itrace[n] += dmy_phi*SQ(dmyR);
@@ -546,12 +550,14 @@ void Calc_f_hydro_correct_precision_OBL(Particle *p, double const* const* u, con
           double dmy_stress_w = -RHO*(torque[1]*r[2] - torque[2]*r[1])/Itrace[n];
 #pragma omp atomic
           Hydro_force_new[im] += (dmy_stress_v + dmy_stress_w)*dmy_ry*dmy_phi;
+          if(DBG_LE_SHEAR){
 #pragma omp atomic
-          Hydro_force_new_p[im] += dmy_stress_p*dmy_ry*dmy_phi;
+            Hydro_force_new_p[im] += dmy_stress_p*dmy_ry*dmy_phi;
 #pragma omp atomic
-          Hydro_force_new_v[im] += dmy_stress_v*dmy_ry*dmy_phi;
+            Hydro_force_new_v[im] += dmy_stress_v*dmy_ry*dmy_phi;
 #pragma omp atomic
-          Hydro_force_new_w[im] += dmy_stress_w*dmy_ry*dmy_phi;
+            Hydro_force_new_w[im] += dmy_stress_w*dmy_ry*dmy_phi;
+          }
         }
       }
       
@@ -609,8 +615,10 @@ void Calc_f_hydro_correct_precision_OBL(Particle *p, double const* const* u, con
           double dmy_stress_w = dWg[rigidID][1]*(GRvecs[n][2] + r[2]) - dWg[rigidID][2]*(GRvecs[n][1] + r[1]);
 #pragma omp atomic
           Hydro_force_new[im] += (dmy_stress_v + dmy_stress_w)*dmy_ry*dmy_phi*dmy_rhop;
-          Hydro_force_new_v[im] += dmy_stress_v*dmy_ry*dmy_phi*dmy_rhop;
-          Hydro_force_new_w[im] += dmy_stress_w*dmy_ry*dmy_phi*dmy_rhop;
+          if(DBG_LE_SHEAR){
+            Hydro_force_new_v[im] += dmy_stress_v*dmy_ry*dmy_phi*dmy_rhop;
+            Hydro_force_new_w[im] += dmy_stress_w*dmy_ry*dmy_phi*dmy_rhop;
+          }
         }
       }
     }//Particle_Number
